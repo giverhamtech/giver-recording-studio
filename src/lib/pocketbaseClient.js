@@ -1,10 +1,9 @@
 import { initializeApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
-// Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyBG0IzRUN831nw8j273zRbDmJC0Ysa7Buk",
+  apiKey: "YOUR_API_KEY",
   authDomain: "giver-recording-studio.firebaseapp.com",
   projectId: "giver-recording-studio",
   storageBucket: "giver-recording-studio.firebasestorage.app",
@@ -12,7 +11,9 @@ const firebaseConfig = {
   appId: "1:365116469350:web:f579fd70fea7e80693fda7"
 };
 
-// Initialize Firebase
-const pb = initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
 
-export default pb;
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+
+export default app;
