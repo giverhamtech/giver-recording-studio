@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import EmailCaptureModal from './EmailCaptureModal.jsx';
-import pb from '@/lib/pocketbaseClient.js';
+import pb from '@/lib/firebaseClient.js';
 import { toast } from 'sonner';
 import { getCategoryImagesMap } from '@/config/beatCategories.js';
 import { usePlayback } from '@/contexts/PlaybackContext.jsx';

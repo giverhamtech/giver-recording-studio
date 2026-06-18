@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import Header from '@/components/Header.jsx';
 import Footer from '@/components/Footer.jsx';
 import EnhancedAudioCard from '@/components/EnhancedAudioCard.jsx';
-import pb from '@/lib/pocketbaseClient.js';
+import pb from '@/lib/firebaseClient.js';
 import { toast } from 'sonner';
 
 const ProductionsPage = () => {

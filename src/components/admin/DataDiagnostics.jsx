@@ -4,7 +4,7 @@ import { ShieldAlert, CheckCircle2, Wrench, RefreshCw, FileWarning, Search, List
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import pb from '@/lib/pocketbaseClient.js';
+import pb from '@/lib/firebaseClient.js';
 import { toast } from 'sonner';
 
 const slugify = (text) => text?.toString().toLowerCase().trim()

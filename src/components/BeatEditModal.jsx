@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import FeaturedToggle from './FeaturedToggle.jsx';
-import pb from '@/lib/pocketbaseClient.js';
+import pb from '@/lib/firebaseClient.js';
 import { toast } from 'sonner';
 import { CATEGORIES } from '@/config/beatCategories.js';
 

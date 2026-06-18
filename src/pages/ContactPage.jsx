@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import pb from '@/lib/pocketbaseClient';
+import pb from '@/lib/firebaseClient';
 import { toast } from 'sonner';
 
 const ContactPage = () => {

@@ -1,6 +1,6 @@
 
 import { useState, useCallback } from 'react';
-import pb from '@/lib/pocketbaseClient.js';
+import pb from '@/lib/firebaseClient.js';
 import { toast } from 'sonner';
 import { getCategoryConfig, updateCategoryConfig } from '@/config/beatCategories.js';
 
@@ -12,7 +12,7 @@ export const useCategoryManager = () => {
     setCategories(getCategoryConfig());
   }, []);
 
-  const updatePocketbaseRecords = async (collection, filterField, oldName, newName = null, newImage = null) => {
+  const updateRecords = async (collection, filterField, oldName, newName = null, newImage = null) => {
     try {
       const records = await pb.collection(collection).getFullList({
         filter: `${filterField}="${oldName}"`,
@@ -23,8 +23,8 @@ export const useCategoryManager = () => {
       for (const record of records) {
         const data = {};
         if (newName) data[filterField] = newName;
-        if (newImage) data.categoryImage = newImage; 
-        
+        if (newImage) data.categoryImage = newImage;
+
         try {
           await pb.collection(collection).update(record.id, data, { $autoCancel: false });
           updatedCount++;
@@ -50,8 +50,8 @@ export const useCategoryManager = () => {
         updateCategoryConfig(updatedConfig);
         refreshLocalState();
 
-        const beatsUpdated = await updatePocketbaseRecords('beats', 'category', categoryName, null, imageUrl);
-        const prodsUpdated = await updatePocketbaseRecords('productions', 'genre', categoryName, null, imageUrl);
+        const beatsUpdated = await updateRecords('beats', 'category', categoryName, null, imageUrl);
+        const prodsUpdated = await updateRecords('productions', 'genre', categoryName, null, imageUrl);
 
         return true;
       } catch (error) {
@@ -79,8 +79,8 @@ export const useCategoryManager = () => {
         updateCategoryConfig(updatedConfig);
         refreshLocalState();
 
-        const beatsUpdated = await updatePocketbaseRecords('beats', 'category', oldName, newName);
-        const prodsUpdated = await updatePocketbaseRecords('productions', 'genre', oldName, newName);
+        const beatsUpdated = await updateRecords('beats', 'category', oldName, newName);
+        const prodsUpdated = await updateRecords('productions', 'genre', oldName, newName);
         
         toast.success(`Renamed to ${newName}. Synced ${beatsUpdated} beats & ${prodsUpdated} productions.`);
         return true;
@@ -136,8 +136,8 @@ export const useCategoryManager = () => {
         const currentConfig = getCategoryConfig();
         
         if (targetCategory) {
-          await updatePocketbaseRecords('beats', 'category', categoryName, targetCategory);
-          await updatePocketbaseRecords('productions', 'genre', categoryName, targetCategory);
+          await updateRecords('beats', 'category', categoryName, targetCategory);
+          await updateRecords('productions', 'genre', categoryName, targetCategory);
         } else {
           const beats = await pb.collection('beats').getFullList({ filter: `category="${categoryName}"`, $autoCancel: false });
           for (const b of beats) await pb.collection('beats').delete(b.id, { $autoCancel: false });

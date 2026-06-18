@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import pb from '@/lib/pocketbaseClient';
+import pb from '@/lib/firebaseClient';
 import { Link } from 'react-router-dom';
 
 const ServicesPage = () => {

@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
-import pb from '@/lib/pocketbaseClient.js';
+import pb from '@/lib/firebaseClient.js';
 
 const PlaybackContext = createContext();
 

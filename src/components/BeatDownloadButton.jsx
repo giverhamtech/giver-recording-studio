@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Download, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import pb from '@/lib/pocketbaseClient.js';
+import pb from '@/lib/firebaseClient.js';
 import { toast } from 'sonner';
 
 const BeatDownloadButton = ({ beat, variant = "default", size = "default", className = "" }) => {

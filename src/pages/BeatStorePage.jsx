@@ -7,7 +7,7 @@ import Header from '@/components/Header.jsx';
 import Footer from '@/components/Footer.jsx';
 import BeatCard from '@/components/BeatCard.jsx';
 import CustomBeatForm from '@/components/CustomBeatForm.jsx';
-import pb from '@/lib/pocketbaseClient.js';
+import pb from '@/lib/firebaseClient.js';
 import { getCategoriesList, getCategoryImagesMap } from '@/config/beatCategories.js';
 import { motion } from 'framer-motion';
 import MetaHead from '@/components/MetaHead.jsx';

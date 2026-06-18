@@ -1,6 +1,6 @@
 
 import { useCallback } from 'react';
-import pb from '@/lib/pocketbaseClient.js';
+import pb from '@/lib/firebaseClient.js';
 
 export const useDuplicateDetection = () => {
   const checkForDuplicate = useCallback(async (title, file = null) => {

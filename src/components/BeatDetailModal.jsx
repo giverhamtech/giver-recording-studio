@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, User } from 'lucide-react';
-import pb from '@/lib/pocketbaseClient.js';
+import pb from '@/lib/firebaseClient.js';
 import BeatPlayer from './BeatPlayer.jsx';
 import BeatDownloadButton from './BeatDownloadButton.jsx';
 import BeatShareButton from './BeatShareButton.jsx';

@@ -14,7 +14,7 @@ import Footer from '@/components/Footer.jsx';
 import EnhancedAudioCard from '@/components/EnhancedAudioCard.jsx';
 import useLastCategory from '@/hooks/useLastCategory.js';
 import { useDuplicateDetection } from '@/hooks/useDuplicateDetection.js';
-import pb from '@/lib/pocketbaseClient.js';
+import pb from '@/lib/firebaseClient.js';
 import { toast } from 'sonner';
 import { CATEGORIES, CATEGORY_IMAGES } from '@/config/beatCategories.js';
 

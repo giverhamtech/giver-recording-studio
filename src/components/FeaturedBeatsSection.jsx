@@ -5,7 +5,7 @@ import { ArrowRight, Music } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import pb from '@/lib/pocketbaseClient.js';
+import pb from '@/lib/firebaseClient.js';
 import FeaturedBeatCard from './FeaturedBeatCard.jsx';
 
 const FeaturedBeatsSection = () => {

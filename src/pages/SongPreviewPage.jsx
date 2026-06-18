@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Download, ArrowLeft, Disc, Calendar, User, Music, Play, Share2 } from 'lucide-react';
-import pb from '@/lib/pocketbaseClient.js';
+import pb, { authStore } from '@/lib/firebaseClient.js';
 import Header from '@/components/Header.jsx';
 import Footer from '@/components/Footer.jsx';
 import MetaHead from '@/components/MetaHead.jsx';
@@ -38,7 +38,7 @@ const SongPreviewPage = () => {
               $autoCancel: false 
             });
             // Ensure public if accessed by ID directly by non-admin
-            if (fetchedSong.privacy !== 'public' && !pb.authStore.isValid) {
+            if (fetchedSong.privacy !== 'public' && !authStore.isValid) {
                throw new Error("Private song");
             }
           } catch (err) {

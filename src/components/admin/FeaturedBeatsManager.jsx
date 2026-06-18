@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Loader2, Star, CheckCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import pb from '@/lib/pocketbaseClient.js';
+import pb from '@/lib/firebaseClient.js';
 import { toast } from 'sonner';
 
 const FeaturedBeatsManager = () => {

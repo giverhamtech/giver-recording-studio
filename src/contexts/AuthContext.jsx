@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import pb from '@/lib/pocketbaseClient.js';
+import pb, { authStore } from '@/lib/firebaseClient.js';
 import { toast } from 'sonner';
 
 const AuthContext = createContext(null);
@@ -17,7 +17,7 @@ export const AuthProvider = ({ children }) => {
       clearTimeout(timeoutRef.current);
     }
     
-    if (pb.authStore.isValid && pb.authStore.model?.role === 'admin') {
+    if (authStore.isValid && authStore.model?.role === 'admin') {
       timeoutRef.current = setTimeout(() => {
         logout();
         toast.error('Session expired due to inactivity. Please log in again.');
@@ -27,8 +27,8 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const checkAuth = () => {
-      if (pb.authStore.isValid && pb.authStore.model?.role === 'admin') {
-        setAdminUser(pb.authStore.model);
+      if (authStore.isValid && authStore.model?.role === 'admin') {
+        setAdminUser(authStore.model);
         resetInactivityTimeout();
       } else {
         setAdminUser(null);
@@ -39,8 +39,8 @@ export const AuthProvider = ({ children }) => {
 
     checkAuth();
     
-    // Set up PocketBase auth store listener
-    const unsubscribe = pb.authStore.onChange(() => {
+    // Set up Firebase auth store listener
+    const unsubscribe = authStore.onChange(() => {
       checkAuth();
     });
 
@@ -59,16 +59,37 @@ export const AuthProvider = ({ children }) => {
 
 const login = async (email, password) => {
   try {
-    const { signInWithEmailAndPassword } = await import("firebase/auth");
-    const { auth } = await import("../lib/pocketbaseClient");
+    const { signInWithEmailAndPassword } = await import('firebase/auth');
+    const { auth } = await import('../lib/firebaseClient');
 
-    const userCredential = await signInWithEmailAndPassword(
-      auth,
-      email,
-      password
-    );
+    await signInWithEmailAndPassword(auth, email, password);
 
-    setAdminUser(userCredential.user);
+    // Wait for Firebase auth store to settle and expose the role.
+    const authModel = await new Promise((resolve) => {
+      if (authStore.isValid) {
+        resolve(authStore.model);
+        return;
+      }
+
+      const unsubscribeAuth = authStore.onChange((model) => {
+        if (authStore.isValid) {
+          unsubscribeAuth();
+          resolve(model);
+        }
+      });
+
+      setTimeout(() => resolve(authStore.model), 1500);
+    });
+
+    if (!authModel || authModel.role !== 'admin') {
+      await logout();
+      return {
+        success: false,
+        error: 'Unauthorized admin credentials.'
+      };
+    }
+
+    setAdminUser(authModel);
     resetInactivityTimeout();
 
     return { success: true };
@@ -80,11 +101,18 @@ const login = async (email, password) => {
   }
 };
 
-  const logout = () => {
-    pb.authStore.clear();
-    setAdminUser(null);
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-  };
+ const logout = async () => {
+  const { signOut } = await import("firebase/auth");
+  const { auth } = await import("../lib/firebaseClient");
+
+  await signOut(auth);
+
+  setAdminUser(null);
+
+  if (timeoutRef.current) {
+    clearTimeout(timeoutRef.current);
+  }
+};
 
   const value = {
     adminUser,

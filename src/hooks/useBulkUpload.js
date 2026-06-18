@@ -1,6 +1,6 @@
 
 import { useState, useCallback } from 'react';
-import pb from '@/lib/pocketbaseClient.js';
+import pb from '@/lib/firebaseClient.js';
 import useLastCategory from './useLastCategory.js';
 import { useDuplicateDetection } from './useDuplicateDetection.js';
 

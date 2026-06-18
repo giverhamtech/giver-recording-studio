@@ -1,7 +1,7 @@
 
 import React, { useEffect } from 'react';
 import { Route, Routes, BrowserRouter as Router } from 'react-router-dom';
-import pb from '@/lib/pocketbaseClient.js';
+import pb from '@/lib/firebaseClient.js';
 import { updateCategoryConfig, getCategoryConfig } from '@/config/beatCategories.js';
 import { AuthProvider } from './contexts/AuthContext.jsx';
 import { PlaybackProvider } from './contexts/PlaybackContext.jsx';

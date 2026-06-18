@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { UploadCloud, Image as ImageIcon, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
-import pb from '@/lib/pocketbaseClient.js';
+import pb from '@/lib/firebaseClient.js';
 
 const CategoryImageUpload = ({ isOpen, onClose, category, onSave, isLoading }) => {
   const [file, setFile] = useState(null);

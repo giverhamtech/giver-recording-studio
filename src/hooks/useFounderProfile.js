@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import pb from '@/lib/pocketbaseClient.js';
+import pb from '@/lib/firebaseClient.js';
 import { toast } from 'sonner';
 
 export const useFounderProfile = () => {
