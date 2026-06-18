@@ -284,8 +284,10 @@ logger.error = (msg, options) => {
 }
 
 export default defineConfig({
-	optimizeDeps: {
-		include: allDeps,
+optimizeDeps: {
+		// Avoid optimizing firebase root entry ("firebase") which is not a valid browser export.
+		// This prevents Vite dev server start failures.
+		include: allDeps.filter((dep) => dep !== 'firebase'),
 	},
 	customLogger: logger,
 	plugins: [
