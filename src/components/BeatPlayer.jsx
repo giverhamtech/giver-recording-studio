@@ -44,7 +44,7 @@ const BeatPlayer = ({ beat }) => {
         artist: beat.artist || 'Giver Recording Studio',
         category: beat.category || beat.genre,
         artwork: beat.categoryImage || beat.artwork,
-        url: beat.url || (beat.audioFile ? `${window.location.origin}/api/files/${beat.collectionId}/${beat.id}/${beat.audioFile}` : null)
+        url: beat.url || (beat.audioFile ? pb.files.getURL(beat, beat.audioFile) : null)
       };
       play(songData, [songData]); // Single song playlist for this view
     }
