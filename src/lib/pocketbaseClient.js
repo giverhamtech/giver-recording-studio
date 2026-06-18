@@ -3,7 +3,7 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
+  apiKey: "AIzaSyBG0IzRUN831nw8j273zRbDmJC0Ysa7Buk",
   authDomain: "giver-recording-studio.firebaseapp.com",
   projectId: "giver-recording-studio",
   storageBucket: "giver-recording-studio.firebasestorage.app",

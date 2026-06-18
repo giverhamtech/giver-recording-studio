@@ -57,22 +57,28 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
-  const login = async (email, password) => {
-    try {
-      const authData = await pb.collection('users').authWithPassword(email, password, { $autoCancel: false });
-      
-      if (authData.record.role !== 'admin') {
-        pb.authStore.clear();
-        throw new Error('Access denied. Admin privileges required.');
-      }
-      
-      setAdminUser(authData.record);
-      resetInactivityTimeout();
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  };
+const login = async (email, password) => {
+  try {
+    const { signInWithEmailAndPassword } = await import("firebase/auth");
+    const { auth } = await import("../lib/pocketbaseClient");
+
+    const userCredential = await signInWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+
+    setAdminUser(userCredential.user);
+    resetInactivityTimeout();
+
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
 
   const logout = () => {
     pb.authStore.clear();
