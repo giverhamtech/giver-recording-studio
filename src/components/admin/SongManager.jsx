@@ -1,19 +1,48 @@
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Edit, Music, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Plus, Trash2, Edit, Music, Loader2, Image as ImageIcon, UploadCloud } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import pb from '@/lib/firebaseClient.js';
+import { supabase } from '@/lib/supabase.js';
+import { getPublicStorageUrl } from '@/lib/storage.js';
+import { generateSlug } from '@/lib/utils.js';
 import { toast } from 'sonner';
+import BatchUploadModal from '@/components/admin/BatchUploadModal.jsx';
+
+const getCategoryId = (song) => song?.category ?? song?.category_id ?? null;
+const getAudioPath = (song) => song?.audioFile ?? song?.audio_file ?? song?.mp3_file ?? null;
+const getCoverPath = (song) => song?.coverImage ?? song?.cover_image ?? null;
+const getCreatedValue = (song) => song?.created_at ?? song?.created ?? null;
+const getDisplayOrder = (cat) => Number(cat?.display_order ?? cat?.displayOrder ?? cat?.display_Order ?? 0);
+const sortByCreatedDesc = (rows) =>
+  [...rows].sort((a, b) => {
+    const av = getCreatedValue(a);
+    const bv = getCreatedValue(b);
+    if (!av && !bv) return 0;
+    if (!av) return 1;
+    if (!bv) return -1;
+    return new Date(bv).getTime() - new Date(av).getTime();
+  });
+
+const formatSupabaseError = (stage, error) => {
+  if (!error) return `${stage}: Unknown error`;
+  const code = error.code ? `code=${error.code}` : null;
+  const message = error.message ? `message=${error.message}` : null;
+  const details = error.details ? `details=${error.details}` : null;
+  const hint = error.hint ? `hint=${error.hint}` : null;
+  const status = error.status ? `status=${error.status}` : null;
+  return [stage, code, status, message, details, hint].filter(Boolean).join(' | ');
+};
 
 const SongManager = () => {
   const [songs, setSongs] = useState([]);
   const [categories, setCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   
   const [formData, setFormData] = useState({
     title: '',
@@ -29,14 +58,24 @@ const SongManager = () => {
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      const [songsRes, catsRes] = await Promise.all([
-        pb.collection('songs').getFullList({ expand: 'category', sort: '-created', $autoCancel: false }),
-        pb.collection('categories').getFullList({ sort: 'displayOrder', $autoCancel: false })
+      const [{ data: songsRes, error: songsErr }, { data: catsRes, error: catsErr }] = await Promise.all([
+        supabase
+          .from('songs')
+          .select('*'),
+        supabase
+          .from('categories')
+          .select('*')
       ]);
-      setSongs(songsRes);
-      setCategories(catsRes);
-      if (catsRes.length > 0 && !formData.category) {
-        setFormData(prev => ({ ...prev, category: catsRes[0].id }));
+
+      if (songsErr) throw songsErr;
+      if (catsErr) throw catsErr;
+
+      const songsData = sortByCreatedDesc(songsRes || []);
+      const categoriesData = [...(catsRes || [])].sort((a, b) => getDisplayOrder(a) - getDisplayOrder(b));
+      setSongs(songsData);
+      setCategories(categoriesData);
+      if (categoriesData.length > 0 && !formData.category) {
+        setFormData(prev => ({ ...prev, category: categoriesData[0].id }));
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -48,7 +87,7 @@ const SongManager = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -67,18 +106,43 @@ const SongManager = () => {
 
     try {
       setIsSubmitting(true);
-      
-      const payload = new FormData();
-      payload.append('title', formData.title);
-      payload.append('description', formData.description);
-      payload.append('category', formData.category);
-      payload.append('privacy', formData.privacy);
-      payload.append('featured', formData.featured);
-      
-      if (audioFile) payload.append('audioFile', audioFile);
-      if (coverImage) payload.append('coverImage', coverImage);
+      let audioPath = null;
+      let coverPath = null;
 
-      await pb.collection('songs').create(payload, { $autoCancel: false });
+      if (audioFile) {
+        const audioExt = audioFile.name.split('.').pop() || 'mp3';
+        audioPath = `songs/audio/${Date.now()}-${Math.random().toString(36).slice(2)}.${audioExt}`;
+        const { error: audioErr } = await supabase.storage
+          .from('song-files')
+          .upload(audioPath, audioFile, { upsert: false });
+        if (audioErr) throw new Error(formatSupabaseError('song-files upload failed', audioErr));
+      }
+
+      if (coverImage) {
+        const coverExt = coverImage.name.split('.').pop() || 'jpg';
+        coverPath = `songs/covers/${Date.now()}-${Math.random().toString(36).slice(2)}.${coverExt}`;
+        const { error: coverErr } = await supabase.storage
+          .from('cover-images')
+          .upload(coverPath, coverImage, { upsert: false });
+        if (coverErr) throw new Error(formatSupabaseError('cover-images upload failed', coverErr));
+      }
+
+      const payload = {
+        title: formData.title,
+        description: formData.description || null,
+        category_id: formData.category || null,
+        privacy: formData.privacy,
+        featured: Boolean(formData.featured),
+        slug: generateSlug(formData.title)
+      };
+
+      if (audioPath) payload.audio_file = audioPath;
+      if (coverPath) payload.cover_image = coverPath;
+
+      console.info('songs.insert payload', payload);
+
+      const { error } = await supabase.from('songs').insert(payload);
+      if (error) throw new Error(formatSupabaseError('songs insert failed', error));
       
       toast.success('Song uploaded and saved to database successfully!');
       
@@ -97,7 +161,7 @@ const SongManager = () => {
       fetchData();
     } catch (error) {
       console.error('Upload error:', error);
-      toast.error('Failed to upload song. Please check required fields.');
+      toast.error(error?.message || 'Song upload failed');
     } finally {
       setIsSubmitting(false);
     }
@@ -107,7 +171,8 @@ const SongManager = () => {
     if (!window.confirm('Are you sure you want to delete this song permanently?')) return;
     
     try {
-      await pb.collection('songs').delete(id, { $autoCancel: false });
+      const { error } = await supabase.from('songs').delete().eq('id', id);
+      if (error) throw error;
       toast.success('Song deleted successfully');
       setSongs(songs.filter(s => s.id !== id));
     } catch (error) {
@@ -118,6 +183,18 @@ const SongManager = () => {
 
   return (
     <div className="space-y-8">
+      <Card className="bg-card border-border shadow-sm">
+        <CardHeader>
+          <CardTitle>Batch Upload</CardTitle>
+          <CardDescription>Upload multiple tracks in one flow with shared settings.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={() => setIsBatchModalOpen(true)} className="bg-primary text-primary-foreground hover:bg-primary/90">
+            <UploadCloud className="w-4 h-4 mr-2" /> Open Batch Uploader
+          </Button>
+        </CardContent>
+      </Card>
+
       <Card className="bg-card border-border shadow-sm">
         <CardHeader>
           <CardTitle>Upload New Song</CardTitle>
@@ -216,15 +293,21 @@ const SongManager = () => {
               {songs.map(song => (
                 <div key={song.id} className="flex items-center gap-4 p-4 border border-border rounded-xl bg-background/50 hover:bg-secondary transition-colors">
                   <div className="w-16 h-16 rounded-md bg-muted overflow-hidden shrink-0 flex items-center justify-center border border-border/50">
-                    {song.coverImage ? (
-                      <img src={pb.files.getURL(song, song.coverImage)} alt="Cover" className="w-full h-full object-cover" />
+                    {getCoverPath(song) ? (
+                      <img
+                        src={getPublicStorageUrl({ bucket: 'cover-images', path: getCoverPath(song) })}
+                        alt="Cover"
+                        className="w-full h-full object-cover"
+                      />
                     ) : (
                       <ImageIcon className="w-6 h-6 text-muted-foreground/50" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-bold text-foreground truncate">{song.title}</h4>
-                    <p className="text-xs text-muted-foreground truncate">{song.expand?.category?.name || 'Uncategorized'}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {categories.find((cat) => cat.id === getCategoryId(song))?.name || 'Uncategorized'}
+                    </p>
                     <div className="flex items-center gap-2 mt-2">
                       <Badge variant={song.privacy === 'public' ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0">
                         {song.privacy}
@@ -241,6 +324,13 @@ const SongManager = () => {
           )}
         </CardContent>
       </Card>
+
+      <BatchUploadModal
+        isOpen={isBatchModalOpen}
+        onClose={() => setIsBatchModalOpen(false)}
+        categories={categories}
+        onUploadComplete={fetchData}
+      />
     </div>
   );
 };

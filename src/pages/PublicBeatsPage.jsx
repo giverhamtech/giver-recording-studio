@@ -3,7 +3,8 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Search, Music, Disc3, SlidersHorizontal, Play, Pause, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import pb from '@/lib/firebaseClient.js';
+import { supabase } from '@/lib/supabase.js';
+import { getPublicStorageUrl } from '@/lib/storage.js';
 import Header from '@/components/Header.jsx';
 import Footer from '@/components/Footer.jsx';
 import { Button } from '@/components/ui/button';
@@ -14,9 +15,33 @@ import { usePlayback } from '@/contexts/PlaybackContext.jsx';
 
 const PAGE_SIZE = 50;
 
+const getCategoryId = (song) => song?.category ?? song?.category_id ?? null;
+const getAudioPath = (song) => song?.audioFile ?? song?.audio_file ?? song?.mp3_file ?? null;
+const getCoverPath = (song) => song?.coverImage ?? song?.cover_image ?? null;
+const getCreatedValue = (row) => row?.created_at ?? row?.created ?? null;
+const getCategoryImagePath = (category) =>
+  category?.categoryImage ?? category?.category_image ?? category?.category_Image ?? null;
+const getDisplayOrder = (category) =>
+  Number(category?.display_order ?? category?.display_Order ?? category?.displayOrder ?? 0);
+const getIsPublic = (song) => {
+  if (typeof song?.privacy !== 'string') return true;
+  return song.privacy.toLowerCase() === 'public';
+};
+
+const sortByCreatedDesc = (rows) =>
+  [...rows].sort((a, b) => {
+    const av = getCreatedValue(a);
+    const bv = getCreatedValue(b);
+    if (!av && !bv) return 0;
+    if (!av) return 1;
+    if (!bv) return -1;
+    return new Date(bv).getTime() - new Date(av).getTime();
+  });
+
 const PublicBeatsPage = () => {
   const [songs, setSongs] = useState([]);
   const [categories, setCategories] = useState([{ id: 'all', name: 'All Tracks' }]);
+  const [categoriesById, setCategoriesById] = useState({});
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -35,29 +60,36 @@ const PublicBeatsPage = () => {
         setIsLoading(true);
         setError(null);
 
-        // Strict filter: MUST be 'public' to appear on published website.
-        let filterStr = "privacy='public'";
+        const { data: catRes, error: catErr } = await supabase
+          .from('categories')
+          .select('*');
+
+        if (catErr) throw catErr;
+
+        const catList = [...(catRes || [])].sort((a, b) => getDisplayOrder(a) - getDisplayOrder(b));
+        setCategories([{ id: 'all', name: 'All Tracks' }, ...catList]);
+        setCategoriesById(
+          catList.reduce((acc, c) => {
+            acc[c.id] = c;
+            return acc;
+          }, {})
+        );
+
+        const { data: songsRes, error: songsErr } = await supabase
+          .from('songs')
+          .select('*');
+        if (songsErr) throw songsErr;
+
+        let normalized = sortByCreatedDesc((songsRes || []).filter((song) => getIsPublic(song)));
         if (selectedCategory !== 'all') {
-          filterStr += ` && category='${selectedCategory}'`;
+          normalized = normalized.filter((song) => getCategoryId(song) === selectedCategory);
         }
 
-        const [songsRes, catRes] = await Promise.all([
-          pb.collection('songs').getList(1, PAGE_SIZE, {
-            filter: filterStr,
-            sort: '-created',
-            expand: 'category',
-            $autoCancel: false // Disable auto-cancel to ensure reliable fetch
-          }),
-          pb.collection('categories').getFullList({
-            sort: 'displayOrder',
-            $autoCancel: false
-          })
-        ]);
-
-        setSongs(songsRes.items);
-        setHasMore(songsRes.page < songsRes.totalPages);
-        setCategories([{ id: 'all', name: 'All Tracks' }, ...catRes]);
+        const pageSlice = normalized.slice(0, PAGE_SIZE);
+        setSongs(pageSlice);
+        setHasMore(normalized.length > PAGE_SIZE);
         setPage(1);
+
 
       } catch (err) {
         console.error('Error fetching catalog data:', err);
@@ -72,25 +104,28 @@ const PublicBeatsPage = () => {
 
   const loadMore = async () => {
     if (isFetchingMore || !hasMore) return;
-    
+
     try {
       setIsFetchingMore(true);
+
       const nextPage = page + 1;
-      
-      let filterStr = "privacy='public'";
+      const from = (nextPage - 1) * PAGE_SIZE;
+      const to = from + PAGE_SIZE;
+
+      const { data: res, error: err } = await supabase
+        .from('songs')
+        .select('*');
+      if (err) throw err;
+
+      let normalized = sortByCreatedDesc((res || []).filter((song) => getIsPublic(song)));
       if (selectedCategory !== 'all') {
-        filterStr += ` && category='${selectedCategory}'`;
+        normalized = normalized.filter((song) => getCategoryId(song) === selectedCategory);
       }
 
-      const res = await pb.collection('songs').getList(nextPage, PAGE_SIZE, {
-        filter: filterStr,
-        sort: '-created',
-        expand: 'category',
-        $autoCancel: false
-      });
+      const nextSlice = normalized.slice(from, to);
+      setSongs((prev) => [...prev, ...nextSlice]);
+      setHasMore(normalized.length > to);
 
-      setSongs(prev => [...prev, ...res.items]);
-      setHasMore(res.page < res.totalPages);
       setPage(nextPage);
     } catch (err) {
       console.error('Error fetching more records:', err);
@@ -98,6 +133,7 @@ const PublicBeatsPage = () => {
       setIsFetchingMore(false);
     }
   };
+
 
   const filteredSongs = useMemo(() => {
     if (!searchQuery) return songs;
@@ -110,7 +146,11 @@ const PublicBeatsPage = () => {
     e.preventDefault();
     e.stopPropagation();
     
-    const audioUrl = song.audioFile ? pb.files.getURL(song, song.audioFile) : null;
+    const audioPath = getAudioPath(song);
+    const audioUrl = audioPath ? getPublicStorageUrl({ bucket: 'song-files', path: audioPath }) : null;
+    const songCategory = categoriesById[getCategoryId(song)];
+    const songCategoryName = songCategory?.name || 'Uncategorized';
+
     if (!audioUrl) return;
 
     const isPlaying = playback.currentSong?.id === song.id && playback.playbackStatus === 'playing';
@@ -118,37 +158,52 @@ const PublicBeatsPage = () => {
     if (isPlaying) {
       playback.pause();
     } else {
-      // Build playlist context
-      const playlist = filteredSongs.filter(s => s.audioFile).map(s => {
-        let cov = 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800&q=80';
-        if (s.coverImage) cov = pb.files.getURL(s, s.coverImage);
-        else if (s.expand?.category?.categoryImage) cov = pb.files.getURL(s.expand.category, s.expand.category.categoryImage);
-        
-        return {
-          id: s.id,
-          title: s.title,
-          artist: 'Giver Recording Studio',
-          category: s.expand?.category?.name,
-          artwork: cov,
-          url: pb.files.getURL(s, s.audioFile)
-        };
-      });
+      // Build playlist context (Supabase Storage URLs)
+      const playlist = filteredSongs
+        .filter((s) => getAudioPath(s))
+        .map(s => {
+          let cov = 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800&q=80';
+          const cat = categoriesById[getCategoryId(s)];
+          const catImage = getCategoryImagePath(cat);
+          const coverPath = getCoverPath(s);
+          const songAudioPath = getAudioPath(s);
+
+          if (coverPath) {
+            cov = getPublicStorageUrl({ bucket: 'cover-images', path: coverPath }) || cov;
+          } else if (catImage) {
+            cov = getPublicStorageUrl({ bucket: 'cover-images', path: catImage }) || cov;
+          }
+
+          return {
+            id: s.id,
+            title: s.title,
+            artist: 'Giver Recording Studio',
+            category: cat?.name || 'Uncategorized',
+            artwork: cov,
+            url: songAudioPath ? getPublicStorageUrl({ bucket: 'song-files', path: songAudioPath }) : null
+          };
+        });
 
       let coverUrl = 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800&q=80';
-      if (song.coverImage) coverUrl = pb.files.getURL(song, song.coverImage);
-      else if (song.expand?.category?.categoryImage) coverUrl = pb.files.getURL(song.expand.category, song.expand.category.categoryImage);
+      const songCategoryImage = getCategoryImagePath(songCategory);
+      const songCoverPath = getCoverPath(song);
+      if (songCoverPath) {
+        coverUrl = getPublicStorageUrl({ bucket: 'cover-images', path: songCoverPath }) || coverUrl;
+      } else if (songCategoryImage) {
+        coverUrl = getPublicStorageUrl({ bucket: 'cover-images', path: songCategoryImage }) || coverUrl;
+      }
 
       playback.play({
         id: song.id,
         title: song.title,
         artist: 'Giver Recording Studio',
-        category: song.expand?.category?.name,
+        category: songCategoryName,
         artwork: coverUrl,
         url: audioUrl,
         duration: 0
       }, playlist);
     }
-  }, [filteredSongs, playback]);
+  }, [categoriesById, filteredSongs, playback]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -260,15 +315,22 @@ const PublicBeatsPage = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {filteredSongs.map((song) => {
                       let coverUrl = 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800&q=80';
-                      if (song.coverImage) coverUrl = pb.files.getURL(song, song.coverImage);
-                      else if (song.expand?.category?.categoryImage) coverUrl = pb.files.getURL(song.expand.category, song.expand.category.categoryImage);
+                      const cat = categoriesById[getCategoryId(song)];
+                      const catImage = getCategoryImagePath(cat);
+                      const coverPath = getCoverPath(song);
+                      const audioPath = getAudioPath(song);
+                      if (coverPath) coverUrl = getPublicStorageUrl({ bucket: 'cover-images', path: coverPath }) || coverUrl;
+                      else if (catImage) coverUrl = getPublicStorageUrl({ bucket: 'cover-images', path: catImage }) || coverUrl;
                       
-                      const audioUrl = song.audioFile ? pb.files.getURL(song, song.audioFile) : null;
+                      const audioUrl = audioPath ? getPublicStorageUrl({ bucket: 'song-files', path: audioPath }) : null;
                       const isPlaying = playback.currentSong?.id === song.id && playback.playbackStatus === 'playing';
-                      const catName = song.expand?.category?.name || 'Uncategorized';
+                      const catName = cat?.name || 'Uncategorized';
 
                       const beatFormat = {
                         ...song,
+                        audioFile: audioPath,
+                        coverImage: coverPath,
+                        category: getCategoryId(song),
                         genre: catName,
                         artist: 'Giver Recording Studio',
                         categoryImage: coverUrl
@@ -282,7 +344,7 @@ const PublicBeatsPage = () => {
                           animate={{ opacity: 1, scale: 1 }}
                           className="group bg-card rounded-2xl border border-border overflow-hidden shadow-sm hover:shadow-xl hover:shadow-primary/5 hover:border-primary/30 transition-all duration-300 flex flex-col h-full relative"
                         >
-                          <Link to={`/beat/${song.slug}`} className="absolute inset-0 z-0" aria-label={`View ${song.title}`}></Link>
+                          <Link to={`/beat/${song.slug || song.id}`} className="absolute inset-0 z-0" aria-label={`View ${song.title}`}></Link>
                           
                           <div className="relative aspect-square overflow-hidden bg-muted shrink-0 pointer-events-none">
                             <img 

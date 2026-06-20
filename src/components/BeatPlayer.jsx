@@ -3,6 +3,7 @@ import React from 'react';
 import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX } from 'lucide-react';
 import { usePlayback } from '@/contexts/PlaybackContext.jsx';
 import { Button } from '@/components/ui/button';
+import { getPublicStorageUrl } from '@/lib/storage.js';
 
 const formatTime = (seconds) => {
   if (!seconds || isNaN(seconds)) return '0:00';
@@ -12,19 +13,26 @@ const formatTime = (seconds) => {
 };
 
 const BeatPlayer = ({ beat }) => {
-  const { 
-    currentSong, 
-    playbackStatus, 
-    playbackPosition, 
-    duration, 
-    play, 
-    pause, 
-    seek, 
-    volume, 
-    changeVolume, 
-    isMuted, 
-    toggleMute 
+  const {
+    currentSong,
+    playbackStatus,
+    playbackPosition,
+    duration,
+    play,
+    pause,
+    seek,
+    volume,
+    changeVolume,
+    next,
+    previous
   } = usePlayback();
+
+  const isMuted = volume === 0;
+
+  const toggleMute = () => {
+    changeVolume(isMuted ? 0.8 : 0);
+  };
+
 
   const isCurrentBeat = currentSong?.id === beat?.id;
   const isPlaying = isCurrentBeat && playbackStatus === 'playing';
@@ -44,7 +52,9 @@ const BeatPlayer = ({ beat }) => {
         artist: beat.artist || 'Giver Recording Studio',
         category: beat.category || beat.genre,
         artwork: beat.categoryImage || beat.artwork,
-        url: beat.url || (beat.audioFile ? pb.files.getURL(beat, beat.audioFile) : null)
+        url:
+          beat.url ||
+          (beat.audioFile ? getPublicStorageUrl({ bucket: 'song-files', path: beat.audioFile }) : null)
       };
       play(songData, [songData]); // Single song playlist for this view
     }
@@ -59,6 +69,11 @@ const BeatPlayer = ({ beat }) => {
   const handleVolume = (e) => {
     changeVolume(parseFloat(e.target.value));
   };
+
+  // Guard: PlaybackContext exposes queue, but older implementations may not.
+  const queue = usePlayback().queue || [];
+  const queueEmpty = (q) => !Array.isArray(q) || q.length === 0;
+
 
   return (
     <div className="bg-card border border-border rounded-xl p-4 md:p-6 shadow-sm w-full">
@@ -116,9 +131,16 @@ const BeatPlayer = ({ beat }) => {
           </div>
 
           <div className="flex items-center justify-center gap-4 w-1/3">
-            <Button variant="ghost" size="icon" className="text-foreground hover:text-primary hover:bg-secondary disabled:opacity-30" disabled={!isCurrentBeat}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-foreground hover:text-primary hover:bg-secondary disabled:opacity-30"
+              disabled={queueEmpty(queue) || !isCurrentBeat}
+              onClick={() => previous()}
+            >
               <SkipBack className="w-6 h-6" />
             </Button>
+
             <Button 
               size="icon" 
               className="w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-[0_0_15px_hsl(var(--primary)/0.3)] hover:scale-105 transition-transform"
@@ -127,9 +149,16 @@ const BeatPlayer = ({ beat }) => {
             >
               {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 ml-1 fill-current" />}
             </Button>
-            <Button variant="ghost" size="icon" className="text-foreground hover:text-primary hover:bg-secondary disabled:opacity-30" disabled={!isCurrentBeat}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-foreground hover:text-primary hover:bg-secondary disabled:opacity-30"
+              disabled={queueEmpty(queue) || !isCurrentBeat}
+              onClick={() => next()}
+            >
               <SkipForward className="w-6 h-6" />
             </Button>
+
           </div>
           
           <div className="w-1/3"></div>

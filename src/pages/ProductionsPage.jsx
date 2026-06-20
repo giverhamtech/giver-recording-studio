@@ -3,12 +3,30 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
 import { Music, Loader2 } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
 import Header from '@/components/Header.jsx';
 import Footer from '@/components/Footer.jsx';
 import EnhancedAudioCard from '@/components/EnhancedAudioCard.jsx';
-import pb from '@/lib/firebaseClient.js';
+import { supabase } from '@/lib/supabase.js';
+import { getPublicStorageUrl } from '@/lib/storage.js';
 import { toast } from 'sonner';
+
+const getAudioPath = (prod) => prod?.audio_file ?? prod?.audioFile ?? null;
+const getCoverPath = (prod) => prod?.cover_image ?? prod?.coverImage ?? null;
+const getVisibility = (prod) => String(prod?.visibility ?? prod?.privacy ?? 'public').toLowerCase();
+const getDisplayOrder = (prod) => Number(prod?.display_order ?? prod?.displayOrder ?? 0);
+const getCreatedValue = (prod) => prod?.created_at ?? prod?.created ?? null;
+
+const sortProductions = (rows) =>
+  [...rows].sort((a, b) => {
+    const orderDiff = getDisplayOrder(a) - getDisplayOrder(b);
+    if (orderDiff !== 0) return orderDiff;
+    const av = getCreatedValue(a);
+    const bv = getCreatedValue(b);
+    if (!av && !bv) return 0;
+    if (!av) return 1;
+    if (!bv) return -1;
+    return new Date(bv).getTime() - new Date(av).getTime();
+  });
 
 const ProductionsPage = () => {
   const [productions, setProductions] = useState([]);
@@ -19,15 +37,25 @@ const ProductionsPage = () => {
     const fetchProductions = async () => {
       try {
         setIsLoading(true);
-        // Querying productions collection directly from the shared persistent database
-        const result = await pb.collection('productions').getList(1, 50, {
-          sort: '-created',
-          $autoCancel: false
-        });
-        setProductions(result.items);
+        setError(null);
+        const { data, error: fetchError } = await supabase
+          .from('productions')
+          .select('*')
+          .eq('visibility', 'public');
+
+        if (fetchError) {
+          if (fetchError.code === 'PGRST205') {
+            setProductions([]);
+            setError(null);
+            return;
+          }
+          throw fetchError;
+        }
+
+        setProductions(sortProductions(data || []));
       } catch (err) {
         console.error('Error fetching productions:', err);
-        setError('Failed to load database productions. Please try again later.');
+        setError('Failed to load productions right now. Please try again later.');
         toast.error('Failed to load productions');
       } finally {
         setIsLoading(false);
@@ -36,17 +64,19 @@ const ProductionsPage = () => {
     fetchProductions();
   }, []);
 
-  const featured = productions.filter(p => p.isFeatured);
-  const latest = productions.filter(p => !p.isFeatured);
+  const visibleProductions = productions.filter((p) => getVisibility(p) === 'public');
+  const featured = visibleProductions.filter((p) => Boolean(p?.featured ?? p?.isFeatured));
+  const latest = visibleProductions.filter((p) => !Boolean(p?.featured ?? p?.isFeatured));
 
-  // Generate playlist array for audio context with correct db paths
-  const currentPlaylist = productions.filter(p => p.audioFile).map(p => ({
+  const currentPlaylist = visibleProductions.filter((p) => getAudioPath(p)).map((p) => ({
     id: p.id,
     title: p.title,
-    artist: p.artist || 'Giver Recording Studio',
-    category: p.genre || 'Uncategorized',
-    artwork: p.coverImage ? pb.files.getURL(p, p.coverImage) : 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800&q=80',
-    url: pb.files.getURL(p, p.audioFile)
+    artist: 'Giver Recording Studio',
+    category: 'Production',
+    artwork: getCoverPath(p)
+      ? getPublicStorageUrl({ bucket: 'cover-images', path: getCoverPath(p) })
+      : 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800&q=80',
+    url: getPublicStorageUrl({ bucket: 'song-files', path: getAudioPath(p) })
   }));
 
   return (
@@ -99,17 +129,12 @@ const ProductionsPage = () => {
                         <motion.div key={item.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: index * 0.1 }}>
                           <EnhancedAudioCard 
                             title={item.title} 
-                            artist={item.artist} 
-                            genre={item.genre} 
-                            coverUrl={item.coverImage ? pb.files.getURL(item, item.coverImage) : 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800&q=80'} 
-                            audioUrl={item.audioFile ? pb.files.getURL(item, item.audioFile) : null} 
+                            artist="Giver Recording Studio"
+                            genre="Production"
+                            coverUrl={getCoverPath(item) ? getPublicStorageUrl({ bucket: 'cover-images', path: getCoverPath(item) }) : 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800&q=80'}
+                            audioUrl={getAudioPath(item) ? getPublicStorageUrl({ bucket: 'song-files', path: getAudioPath(item) }) : null}
                             playlist={currentPlaylist} 
-                            streamingLinks={{
-                              spotify: item.spotifyUrl,
-                              appleMusic: item.appleMusicUrl,
-                              soundCloud: item.soundCloudUrl,
-                              youtube: item.youtubeUrl
-                            }} 
+                            streamingLinks={{ youtube: item.video_url || null }}
                           />
                         </motion.div>
                       ))}
@@ -128,17 +153,12 @@ const ProductionsPage = () => {
                         <motion.div key={item.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: index * 0.1 }}>
                           <EnhancedAudioCard 
                             title={item.title} 
-                            artist={item.artist} 
-                            genre={item.genre} 
-                            coverUrl={item.coverImage ? pb.files.getURL(item, item.coverImage) : 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800&q=80'} 
-                            audioUrl={item.audioFile ? pb.files.getURL(item, item.audioFile) : null} 
+                            artist="Giver Recording Studio"
+                            genre="Production"
+                            coverUrl={getCoverPath(item) ? getPublicStorageUrl({ bucket: 'cover-images', path: getCoverPath(item) }) : 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800&q=80'}
+                            audioUrl={getAudioPath(item) ? getPublicStorageUrl({ bucket: 'song-files', path: getAudioPath(item) }) : null}
                             playlist={currentPlaylist} 
-                            streamingLinks={{
-                              spotify: item.spotifyUrl,
-                              appleMusic: item.appleMusicUrl,
-                              soundCloud: item.soundCloudUrl,
-                              youtube: item.youtubeUrl
-                            }} 
+                            streamingLinks={{ youtube: item.video_url || null }}
                           />
                         </motion.div>
                       ))}
@@ -146,11 +166,11 @@ const ProductionsPage = () => {
                   </div>
                 )}
 
-                {productions.length === 0 && (
+                {visibleProductions.length === 0 && (
                   <div className="text-center py-20 bg-secondary/30 rounded-2xl border border-border">
                     <Music className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-xl font-medium text-foreground mb-2">No database productions found</h3>
-                    <p className="text-muted-foreground">Check back later for new releases.</p>
+                    <h3 className="text-xl font-medium text-foreground mb-2">No productions available yet</h3>
+                    <p className="text-muted-foreground">Our latest public productions will appear here as soon as they are published.</p>
                   </div>
                 )}
               </div>

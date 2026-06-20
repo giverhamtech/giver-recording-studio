@@ -3,8 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { Loader2, Star, CheckCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import pb from '@/lib/firebaseClient.js';
+import { supabase } from '@/lib/supabase.js';
 import { toast } from 'sonner';
+
+const getCategoryId = (song) => song?.category ?? song?.category_id ?? null;
+const getCreatedValue = (song) => song?.created_at ?? song?.created ?? null;
 
 const FeaturedBeatsManager = () => {
   const [songs, setSongs] = useState([]);
@@ -14,12 +17,31 @@ const FeaturedBeatsManager = () => {
   const fetchSongs = async () => {
     try {
       setIsLoading(true);
-      const res = await pb.collection('songs').getFullList({ 
-        sort: '-created', 
-        expand: 'category',
-        $autoCancel: false 
+      const [{ data: songsRes, error: songsErr }, { data: categoriesRes, error: categoriesErr }] = await Promise.all([
+        supabase
+          .from('songs')
+          .select('*'),
+        supabase.from('categories').select('id, name')
+      ]);
+
+      if (songsErr) throw songsErr;
+      if (categoriesErr) throw categoriesErr;
+
+      const sortedSongs = [...(songsRes || [])].sort((a, b) => {
+        const av = getCreatedValue(a);
+        const bv = getCreatedValue(b);
+        if (!av && !bv) return 0;
+        if (!av) return 1;
+        if (!bv) return -1;
+        return new Date(bv).getTime() - new Date(av).getTime();
       });
-      setSongs(res);
+
+      const categoriesById = new Map((categoriesRes || []).map((c) => [c.id, c.name]));
+      const normalizedSongs = sortedSongs.map((song) => ({
+        ...song,
+        categoryName: categoriesById.get(getCategoryId(song)) || 'Uncategorized'
+      }));
+      setSongs(normalizedSongs);
     } catch (error) {
       console.error('Error fetching songs:', error);
       toast.error('Failed to load songs');
@@ -35,8 +57,11 @@ const FeaturedBeatsManager = () => {
   const toggleFeatured = async (id, currentStatus) => {
     try {
       setUpdatingId(id);
-      // Persist the change permanently to the shared database
-      await pb.collection('songs').update(id, { featured: !currentStatus }, { $autoCancel: false });
+      const { error } = await supabase
+        .from('songs')
+        .update({ featured: !currentStatus })
+        .eq('id', id);
+      if (error) throw error;
       
       toast.success(`Song ${!currentStatus ? 'marked as' : 'removed from'} featured tracks!`);
       
@@ -81,7 +106,7 @@ const FeaturedBeatsManager = () => {
                   <div className="min-w-0 pr-4">
                     <h4 className="font-bold text-foreground truncate" title={song.title}>{song.title}</h4>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {song.expand?.category?.name || 'Uncategorized'} • <span className={song.privacy === 'public' ? 'text-teal-500' : 'text-amber-500'}>{song.privacy}</span>
+                      {song.categoryName} • <span className={song.privacy === 'public' ? 'text-teal-500' : 'text-amber-500'}>{song.privacy}</span>
                     </p>
                   </div>
                   {song.featured && <CheckCircle className="w-5 h-5 text-primary shrink-0" />}

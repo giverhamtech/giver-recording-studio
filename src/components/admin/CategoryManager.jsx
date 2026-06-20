@@ -1,18 +1,68 @@
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Loader2, Tags, Image as ImageIcon } from 'lucide-react';
+import { Plus, Trash2, Loader2, Tags, Image as ImageIcon, Edit, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import pb from '@/lib/firebaseClient.js';
+import { supabase } from '@/lib/supabase.js';
+import { getPublicStorageUrl } from '@/lib/storage.js';
 import { toast } from 'sonner';
+
+const getDisplayOrder = (cat) => Number(cat?.display_order ?? cat?.displayOrder ?? cat?.display_Order ?? 0);
+const getCategoryImagePath = (cat) => cat?.categoryImage ?? cat?.category_image ?? cat?.category_Image ?? null;
+const getCategoryVisible = (cat) => cat?.visible ?? cat?.isVisible ?? true;
+
+const logSupabaseError = (context, error, extra = {}) => {
+  console.error(`[CategoryManager] ${context} failed`, {
+    code: error?.code,
+    message: error?.message,
+    details: error?.details,
+    hint: error?.hint,
+    status: error?.status,
+    ...extra
+  });
+};
+
+const isSchemaMismatchError = (error) => {
+  const message = String(error?.message || '').toLowerCase();
+  return (
+    error?.code === 'PGRST204' ||
+    error?.code === '42703' ||
+    message.includes('column') ||
+    message.includes('description') ||
+    message.includes('display_order') ||
+    message.includes('category_image') ||
+    message.includes('visible')
+  );
+};
+
+const getCategoryPayloadVariants = (payload) => {
+  const withoutVisible = { ...payload };
+  delete withoutVisible.visible;
+
+  const legacy = {
+    name: payload.name,
+    display_Order: payload.display_order,
+    category_Image: payload.category_image ?? null
+  };
+
+  const fallbackCamel = {
+    name: payload.name,
+    description: payload.description ?? null,
+    displayOrder: payload.display_order,
+    categoryImage: payload.category_image ?? null
+  };
+
+  return [payload, withoutVisible, legacy, fallbackCamel];
+};
 
 const CategoryManager = () => {
   const [categories, setCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -25,10 +75,17 @@ const CategoryManager = () => {
   const fetchCategories = async () => {
     try {
       setIsLoading(true);
-      const res = await pb.collection('categories').getFullList({ sort: 'displayOrder', $autoCancel: false });
-      setCategories(res);
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*');
+
+      if (error) {
+        logSupabaseError('fetchCategories', error);
+        throw error;
+      }
+      setCategories([...(data || [])].sort((a, b) => getDisplayOrder(a) - getDisplayOrder(b)));
     } catch (error) {
-      console.error('Error fetching categories:', error);
+      logSupabaseError('fetchCategories', error);
       toast.error('Failed to load categories from database');
     } finally {
       setIsLoading(false);
@@ -56,41 +113,133 @@ const CategoryManager = () => {
 
     try {
       setIsSubmitting(true);
-      
-      const payload = new FormData();
-      payload.append('name', formData.name);
-      payload.append('description', formData.description);
-      payload.append('displayOrder', formData.displayOrder);
-      payload.append('visible', formData.visible);
-      
+      let uploadedImagePath = null;
+
       if (categoryImage) {
-        payload.append('categoryImage', categoryImage);
+        const fileExt = categoryImage.name.split('.').pop() || 'jpg';
+        const filePath = `categories/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+        const { error: uploadErr } = await supabase.storage
+          .from('cover-images')
+          .upload(filePath, categoryImage, { upsert: false });
+        if (uploadErr) {
+          logSupabaseError('categoryImageUpload', uploadErr, { filePath, fileName: categoryImage?.name });
+          throw uploadErr;
+        }
+        console.info('[CategoryManager] category image uploaded successfully', { filePath, fileName: categoryImage?.name });
+        uploadedImagePath = filePath;
       }
 
-      await pb.collection('categories').create(payload, { $autoCancel: false });
-      toast.success('Category created and persisted to database!');
+      const payload = {
+        name: formData.name,
+        description: formData.description || null,
+        display_order: Number(formData.displayOrder) || 0,
+        visible: Boolean(formData.visible)
+      };
+
+      if (uploadedImagePath) payload.category_image = uploadedImagePath;
+
+      let error = null;
+      const payloadVariants = getCategoryPayloadVariants(payload);
+
+      if (editingCategory) {
+        for (let i = 0; i < payloadVariants.length; i++) {
+          const variant = payloadVariants[i];
+          const updateResult = await supabase.from('categories').update(variant).eq('id', editingCategory.id);
+          error = updateResult.error;
+          if (!error) {
+            if (i > 0) {
+              console.info('[CategoryManager] update succeeded using fallback payload variant', { variant, categoryId: editingCategory.id, variantIndex: i });
+            }
+            break;
+          }
+          logSupabaseError('updateCategoryVariantAttempt', error, { variant, categoryId: editingCategory.id, variantIndex: i });
+          if (!isSchemaMismatchError(error)) break;
+        }
+      } else {
+        for (let i = 0; i < payloadVariants.length; i++) {
+          const variant = payloadVariants[i];
+          const insertResult = await supabase.from('categories').insert(variant);
+          error = insertResult.error;
+          if (!error) {
+            if (i > 0) {
+              console.info('[CategoryManager] create succeeded using fallback payload variant', { variant, variantIndex: i });
+            }
+            break;
+          }
+          logSupabaseError('createCategoryVariantAttempt', error, { variant, variantIndex: i });
+          if (!isSchemaMismatchError(error)) break;
+        }
+      }
+
+      if (error) {
+        logSupabaseError(editingCategory ? 'updateCategory' : 'createCategory', error, { payload });
+        throw error;
+      }
+
+      toast.success(editingCategory ? 'Category updated successfully' : 'Category created and persisted to database!');
       
       setFormData({ name: '', description: '', displayOrder: 0, visible: true });
       setCategoryImage(null);
-      fetchCategories();
+      setEditingCategory(null);
+      await fetchCategories();
     } catch (error) {
-      console.error('Category creation error:', error);
-      toast.error('Failed to create category');
+      logSupabaseError('handleSubmit', error, { formData, editingCategoryId: editingCategory?.id ?? null });
+      toast.error(`${editingCategory ? 'Failed to update category' : 'Failed to create category'}: ${error?.message || 'Unknown error'}`);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const handleEdit = (category) => {
+    setEditingCategory(category);
+    setFormData({
+      name: category?.name || '',
+      description: category?.description || '',
+      displayOrder: getDisplayOrder(category),
+      visible: getCategoryVisible(category)
+    });
+    setCategoryImage(null);
+  };
+
+  const cancelEdit = () => {
+    setEditingCategory(null);
+    setFormData({ name: '', description: '', displayOrder: 0, visible: true });
+    setCategoryImage(null);
+  };
+
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this category? Songs using it will become Uncategorized.')) return;
+    const { count, error: countError } = await supabase
+      .from('songs')
+      .select('id', { count: 'exact', head: true })
+      .eq('category_id', id);
+
+    if (countError) {
+      logSupabaseError('deleteCategoryPreflight', countError, { categoryId: id });
+      toast.error('Unable to check whether songs use this category');
+      return;
+    }
+
+    if ((count || 0) > 0) {
+      toast.error('Cannot delete a category that already has songs. Reassign those songs first.');
+      return;
+    }
+
+    if (!window.confirm('Are you sure you want to delete this category?')) return;
     
     try {
-      await pb.collection('categories').delete(id, { $autoCancel: false });
+      const { error } = await supabase.from('categories').delete().eq('id', id);
+      if (error) {
+        logSupabaseError('deleteCategory', error, { categoryId: id });
+        throw error;
+      }
       toast.success('Category deleted permanently');
       setCategories(categories.filter(c => c.id !== id));
+      if (editingCategory?.id === id) {
+        cancelEdit();
+      }
     } catch (error) {
-      console.error('Delete error:', error);
-      toast.error('Failed to delete category');
+      logSupabaseError('deleteCategoryCatch', error, { categoryId: id });
+      toast.error(`Failed to delete category: ${error?.message || 'Unknown error'}`);
     }
   };
 
@@ -98,8 +247,8 @@ const CategoryManager = () => {
     <div className="space-y-8">
       <Card className="bg-card border-border shadow-sm">
         <CardHeader>
-          <CardTitle>Create New Category</CardTitle>
-          <CardDescription>Add a genre or style category to organize beats.</CardDescription>
+          <CardTitle>{editingCategory ? 'Edit Category' : 'Create New Category'}</CardTitle>
+          <CardDescription>{editingCategory ? 'Update the selected category details.' : 'Add a genre or style category to organize beats.'}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -138,9 +287,16 @@ const CategoryManager = () => {
               </div>
             </div>
 
-            <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto bg-primary text-primary-foreground hover:bg-primary/90">
-              {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</> : <><Plus className="w-4 h-4 mr-2" /> Create Category</>}
-            </Button>
+            <div className="flex flex-wrap gap-3">
+              <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto bg-primary text-primary-foreground hover:bg-primary/90">
+                {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</> : editingCategory ? <><Edit className="w-4 h-4 mr-2" /> Save Changes</> : <><Plus className="w-4 h-4 mr-2" /> Create Category</>}
+              </Button>
+              {editingCategory && (
+                <Button type="button" variant="outline" onClick={cancelEdit} disabled={isSubmitting} className="border-border hover:bg-secondary">
+                  <X className="w-4 h-4 mr-2" /> Cancel Edit
+                </Button>
+              )}
+            </div>
           </form>
         </CardContent>
       </Card>
@@ -163,8 +319,12 @@ const CategoryManager = () => {
               {categories.map(cat => (
                 <div key={cat.id} className="flex items-center gap-4 p-4 border border-border rounded-xl bg-background/50">
                   <div className="w-16 h-16 rounded-md bg-muted overflow-hidden shrink-0 flex items-center justify-center border border-border/50">
-                    {cat.categoryImage ? (
-                      <img src={pb.files.getURL(cat, cat.categoryImage)} alt={cat.name} className="w-full h-full object-cover" />
+                    {getCategoryImagePath(cat) ? (
+                      <img
+                        src={getPublicStorageUrl({ bucket: 'cover-images', path: getCategoryImagePath(cat) })}
+                        alt={cat.name}
+                        className="w-full h-full object-cover"
+                      />
                     ) : (
                       <ImageIcon className="w-6 h-6 text-muted-foreground/50" />
                     )}
@@ -172,14 +332,19 @@ const CategoryManager = () => {
                   <div className="flex-1 min-w-0">
                     <h4 className="font-bold text-foreground flex items-center gap-2">
                       {cat.name}
-                      {!cat.visible && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Hidden</Badge>}
+                      {cat.visible === false && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Hidden</Badge>}
                     </h4>
                     <p className="text-xs text-muted-foreground truncate mt-1">{cat.description || 'No description'}</p>
-                    <p className="text-[10px] text-muted-foreground/70 mt-1">Order: {cat.displayOrder}</p>
+                    <p className="text-[10px] text-muted-foreground/70 mt-1">Order: {getDisplayOrder(cat)}</p>
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => handleDelete(cat.id)} className="shrink-0 text-muted-foreground hover:text-destructive">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button variant="ghost" size="icon" onClick={() => handleEdit(cat)} className="text-muted-foreground hover:text-primary">
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => handleDelete(cat.id)} className="text-muted-foreground hover:text-destructive">
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>

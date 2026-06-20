@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import { Download, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import pb from '@/lib/firebaseClient.js';
+import { supabase } from '@/lib/supabase.js';
+import { getPublicStorageUrl } from '@/lib/storage.js';
 import { toast } from 'sonner';
 
 const BeatDownloadButton = ({ beat, variant = "default", size = "default", className = "" }) => {
@@ -10,10 +11,22 @@ const BeatDownloadButton = ({ beat, variant = "default", size = "default", class
 
   const incrementDownloadCount = async () => {
     try {
-      // Attempt to increment in DB. Will silently fail if permissions don't allow public updates.
-      await pb.collection('songs').update(beat.id, { "downloadCount+": 1 }, { $autoCancel: false });
+      if (!beat?.id) return;
+      const { data: song, error: readErr } = await supabase
+        .from('songs')
+        .select('downloadCount')
+        .eq('id', beat.id)
+        .maybeSingle();
+
+      if (readErr) return;
+      if (typeof song?.downloadCount !== 'number') return;
+
+      await supabase
+        .from('songs')
+        .update({ downloadCount: song.downloadCount + 1 })
+        .eq('id', beat.id);
     } catch (error) {
-      console.warn("Download count increment skipped (permission denied or network issue).");
+      console.warn('Download count increment skipped (permission denied or network issue).');
     }
   };
 
@@ -21,16 +34,16 @@ const BeatDownloadButton = ({ beat, variant = "default", size = "default", class
     e.stopPropagation();
     e.preventDefault();
     
-    if (!beat.audioFile) {
+    const audioPath = beat?.audioFile || beat?.mp3_file;
+    const fileUrl = beat?.url || (audioPath ? getPublicStorageUrl({ bucket: 'song-files', path: audioPath }) : null);
+
+    if (!fileUrl) {
       toast.error('No audio file available for download.');
       return;
     }
 
     setIsDownloading(true);
     try {
-      const fileUrl = pb.files.getURL(beat, beat.audioFile);
-      
-      // Fetch the file to bypass CORS issues on some direct downloads and force download prompt
       const response = await fetch(fileUrl);
       if (!response.ok) throw new Error('Network response was not ok');
       
@@ -40,8 +53,7 @@ const BeatDownloadButton = ({ beat, variant = "default", size = "default", class
       const a = document.createElement('a');
       a.style.display = 'none';
       a.href = blobUrl;
-      // Sanitize title for filename
-      const safeTitle = beat.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      const safeTitle = (beat.title || 'track').replace(/[^a-z0-9]/gi, '_').toLowerCase();
       a.download = `${safeTitle}_giver_recording_studio.mp3`;
       document.body.appendChild(a);
       a.click();
@@ -49,7 +61,6 @@ const BeatDownloadButton = ({ beat, variant = "default", size = "default", class
       window.URL.revokeObjectURL(blobUrl);
       document.body.removeChild(a);
       
-      // Update stats
       incrementDownloadCount();
       
       toast.success('Download started successfully!');
@@ -67,7 +78,7 @@ const BeatDownloadButton = ({ beat, variant = "default", size = "default", class
       size={size} 
       className={className} 
       onClick={handleDownload}
-      disabled={isDownloading || !beat.audioFile}
+      disabled={isDownloading || (!beat?.audioFile && !beat?.mp3_file && !beat?.url)}
     >
       {isDownloading ? (
         <Loader2 className="w-4 h-4 mr-2 animate-spin" />

@@ -1,118 +1,153 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import pb, { authStore } from '@/lib/firebaseClient.js';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase.js';
 
 const AuthContext = createContext(null);
 
-const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
+  // Admin access is based on Supabase session + admin_users table.
+  // Grant access if a matching row exists for either:
+  // - id == user.id
+  // - email == user.email
+const getAdminFromSession = async () => {
+  try {
+    const {
+      data: { session }
+    } = await supabase.auth.getSession();
+
+    if (!session?.user) {
+      console.log('[AuthContext] No authenticated user found');
+      return null;
+    }
+
+    const user = session.user;
+
+    console.log('[AuthContext] user.id:', user.id);
+    console.log('[AuthContext] user.email:', user.email);
+
+    // First try matching by id
+    let { data: adminRow, error } = await supabase
+      .from('admin_users')
+      .select('*')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    // If not found by id, try matching by email
+    if (!adminRow) {
+      const result = await supabase
+        .from('admin_users')
+        .select('*')
+        .eq('email', user.email)
+        .maybeSingle();
+
+      adminRow = result.data;
+      error = result.error;
+    }
+
+    console.log('[AuthContext] adminRow:', adminRow);
+    console.log('[AuthContext] error:', error);
+
+    if (error) {
+      console.error('[AuthContext] Query error:', error);
+      return null;
+    }
+
+    if (adminRow) {
+      console.log('[AuthContext] Admin matched');
+      return adminRow;
+    }
+
+    console.log('[AuthContext] Rejecting: no matching admin_users row found by id/email');
+    return null;
+  } catch (error) {
+    console.error('[AuthContext] Unexpected error:', error);
+    return null;
+  }
+};
 
 export const AuthProvider = ({ children }) => {
   const [adminUser, setAdminUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const timeoutRef = useRef(null);
 
-  const resetInactivityTimeout = () => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    
-    if (authStore.isValid && authStore.model?.role === 'admin') {
-      timeoutRef.current = setTimeout(() => {
-        logout();
-        toast.error('Session expired due to inactivity. Please log in again.');
-      }, INACTIVITY_TIMEOUT);
-    }
-  };
+const resetInactivityTimeout = () => {
+  if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+  // adminUser exists means admin access is granted
+  if (adminUser) {
+    timeoutRef.current = setTimeout(() => {
+      logout();
+      toast.error('Session expired due to inactivity. Please log in again.');
+    }, INACTIVITY_TIMEOUT);
+  }
+};
 
   useEffect(() => {
-    const checkAuth = () => {
-      if (authStore.isValid && authStore.model?.role === 'admin') {
-        setAdminUser(authStore.model);
-        resetInactivityTimeout();
-      } else {
-        setAdminUser(null);
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      }
+    let isMounted = true;
+
+    const loadAdmin = async () => {
+      const admin = await getAdminFromSession();
+      if (!isMounted) return;
+
+      setAdminUser(admin);
+      if (admin) resetInactivityTimeout();
+      else if (timeoutRef.current) clearTimeout(timeoutRef.current);
       setIsLoading(false);
     };
 
-    checkAuth();
-    
-    // Set up Firebase auth store listener
-    const unsubscribe = authStore.onChange(() => {
-      checkAuth();
+    loadAdmin();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, _session) => {
+      // re-check role on any auth change
+      loadAdmin();
     });
 
-    // Set up activity listeners
     const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
     const handleActivity = () => resetInactivityTimeout();
-    
-    events.forEach(event => document.addEventListener(event, handleActivity));
+    events.forEach((event) => document.addEventListener(event, handleActivity));
 
     return () => {
-      unsubscribe();
-      events.forEach(event => document.removeEventListener(event, handleActivity));
+      isMounted = false;
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      events.forEach((event) => document.removeEventListener(event, handleActivity));
+      authListener.subscription?.unsubscribe();
     };
   }, []);
 
 const login = async (email, password) => {
   try {
-    const { signInWithEmailAndPassword } = await import('firebase/auth');
-    const { auth } = await import('../lib/firebaseClient');
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
 
-    await signInWithEmailAndPassword(auth, email, password);
+    const admin = await getAdminFromSession();
 
-    // Wait for Firebase auth store to settle and expose the role.
-    const authModel = await new Promise((resolve) => {
-      if (authStore.isValid) {
-        resolve(authStore.model);
-        return;
-      }
-
-      const unsubscribeAuth = authStore.onChange((model) => {
-        if (authStore.isValid) {
-          unsubscribeAuth();
-          resolve(model);
-        }
-      });
-
-      setTimeout(() => resolve(authStore.model), 1500);
-    });
-
-    if (!authModel || authModel.role !== 'admin') {
+    if (!admin) {
+      console.log('[AuthContext][login] Unauthorized. Admin not found.');
       await logout();
-      return {
-        success: false,
-        error: 'Unauthorized admin credentials.'
-      };
+      return { success: false, error: 'Unauthorized admin credentials.' };
     }
 
-    setAdminUser(authModel);
+    // Row exists => success immediately (NO role/status checks)
+    setAdminUser(admin);
     resetInactivityTimeout();
-
     return { success: true };
   } catch (error) {
-    return {
-      success: false,
-      error: error.message
-    };
+    return { success: false, error: error?.message || 'Login failed' };
   }
 };
 
- const logout = async () => {
-  const { signOut } = await import("firebase/auth");
-  const { auth } = await import("../lib/firebaseClient");
-
-  await signOut(auth);
+const logout = async () => {
+  try {
+    await supabase.auth.signOut();
+  } catch {
+    // ignore
+  }
 
   setAdminUser(null);
-
-  if (timeoutRef.current) {
-    clearTimeout(timeoutRef.current);
-  }
+  if (timeoutRef.current) clearTimeout(timeoutRef.current);
 };
+
+
 
   const value = {
     adminUser,

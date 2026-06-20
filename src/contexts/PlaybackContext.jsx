@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
-import pb from '@/lib/firebaseClient.js';
+import { supabase } from '@/lib/supabase.js';
 
 const PlaybackContext = createContext();
 
@@ -84,11 +84,19 @@ export const PlaybackProvider = ({ children }) => {
 
   const incrementPlayCount = async (songId) => {
     try {
-      if(songId) {
-        await pb.collection('songs').update(songId, { "playCount+": 1 }, { $autoCancel: false });
+      // Optional analytics; ignore if table/column or RLS prevents updates.
+      // Update playCount if the column exists; otherwise no-op.
+      if (!songId) return;
+      const { error } = await supabase
+        .from('beats')
+        .update({ playCount: 0 })
+        .eq('id', songId);
+
+      if (error) {
+        // ignore
       }
-    } catch (error) {
-      // Ignore permission denied on play count
+    } catch {
+      // ignore
     }
   };
 

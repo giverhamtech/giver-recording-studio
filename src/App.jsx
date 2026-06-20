@@ -1,8 +1,6 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Route, Routes, BrowserRouter as Router } from 'react-router-dom';
-import pb from '@/lib/firebaseClient.js';
-import { updateCategoryConfig, getCategoryConfig } from '@/config/beatCategories.js';
 import { AuthProvider } from './contexts/AuthContext.jsx';
 import { PlaybackProvider } from './contexts/PlaybackContext.jsx';
 import { Toaster } from '@/components/ui/sonner';
@@ -23,33 +21,6 @@ import AdminDashboard from './pages/AdminDashboard.jsx';
 import StickyMiniPlayer from './components/StickyMiniPlayer.jsx';
 
 function App() {
-  
-  useEffect(() => {
-    // Left for legacy dynamic category setup if needed, though schema changes
-    // shift primary data sources to DB categories
-    const syncDynamicCategories = async () => {
-      try {
-        const records = await pb.collection('productions').getFullList({
-          filter: 'genre="System_Category_Image"',
-          $autoCancel: false
-        });
-        
-        if (records.length > 0) {
-          let config = getCategoryConfig();
-          records.forEach(r => {
-            const catName = r.title.replace(' Cover', '');
-            const url = pb.files.getURL(r, r.coverImage);
-            config = config.map(c => c.name === catName ? { ...c, imageUrl: url } : c);
-          });
-          updateCategoryConfig(config);
-        }
-      } catch (e) {
-        // Silently ignore if fails to load dynamic images
-      }
-    };
-    
-    syncDynamicCategories();
-  }, []);
 
   return (
     <AuthProvider>

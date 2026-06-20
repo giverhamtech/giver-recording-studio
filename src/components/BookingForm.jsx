@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import pb from '@/lib/firebaseClient';
+import { supabase } from '@/lib/supabase.js';
 import { toast } from 'sonner';
 
 const BookingForm = ({ onSuccess }) => {
@@ -50,7 +51,36 @@ const BookingForm = ({ onSuccess }) => {
     setIsSubmitting(true);
 
     try {
-      await pb.collection('booking_requests').create(formData, { $autoCancel: false });
+      const payload = {
+        client_name: formData.name.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
+        preferred_date: formData.preferred_date || null,
+        service_type: formData.service_type || null,
+        message: formData.message?.trim() || null,
+        status: 'pending'
+      };
+
+      const { error } = await supabase.from('bookings').insert(payload);
+      if (error) {
+        // Backward compatibility: some deployments still use `name` instead of `client_name`.
+        if (error.code === 'PGRST204' && error.message?.includes('client_name')) {
+          const legacyPayload = {
+            name: formData.name.trim(),
+            email: formData.email.trim(),
+            phone: formData.phone.trim(),
+            preferred_date: formData.preferred_date || null,
+            service_type: formData.service_type || null,
+            message: formData.message?.trim() || null,
+            status: 'pending'
+          };
+          const { error: legacyError } = await supabase.from('bookings').insert(legacyPayload);
+          if (legacyError) throw legacyError;
+        } else {
+          throw error;
+        }
+      }
+
       toast.success('Booking request submitted successfully');
       setFormData({
         name: '',
@@ -62,6 +92,7 @@ const BookingForm = ({ onSuccess }) => {
       });
       if (onSuccess) onSuccess();
     } catch (error) {
+      console.error('Booking submit error:', error);
       toast.error('Failed to submit booking request');
     } finally {
       setIsSubmitting(false);

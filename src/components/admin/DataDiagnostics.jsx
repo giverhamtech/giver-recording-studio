@@ -4,8 +4,11 @@ import { ShieldAlert, CheckCircle2, Wrench, RefreshCw, FileWarning, Search, List
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import pb from '@/lib/firebaseClient.js';
+import { supabase } from '@/lib/supabase.js';
 import { toast } from 'sonner';
+
+const getCategoryId = (song) => song?.category ?? song?.category_id ?? null;
+const getAudioPath = (song) => song?.audioFile ?? song?.audio_file ?? song?.mp3_file ?? null;
 
 const slugify = (text) => text?.toString().toLowerCase().trim()
   .replace(/\s+/g, '-')
@@ -21,12 +24,18 @@ const DataDiagnostics = () => {
   const runAudit = async () => {
     setIsLoading(true);
     try {
-      const records = await pb.collection('songs').getFullList({ $autoCancel: false });
-      setStats({ total: records.length, checked: records.length });
+      const { data: records, error } = await supabase
+        .from('songs')
+        .select('*');
+
+      if (error) throw error;
+
+      const rows = records || [];
+      setStats({ total: rows.length, checked: rows.length });
       
       const foundIssues = [];
 
-      records.forEach(song => {
+      rows.forEach(song => {
         const songIssues = [];
         
         // Check 1: Privacy explicitly set
@@ -35,12 +44,12 @@ const DataDiagnostics = () => {
         }
 
         // Check 2: Audio File
-        if (!song.audioFile) {
+        if (!getAudioPath(song)) {
           songIssues.push({ type: 'missing_audio', desc: 'No audio file attached' });
         }
 
         // Check 3: Category
-        if (!song.category) {
+        if (!getCategoryId(song)) {
           songIssues.push({ type: 'missing_category', desc: 'Uncategorized track' });
         }
 
@@ -84,7 +93,11 @@ const DataDiagnostics = () => {
         });
 
         if (Object.keys(updates).length > 0) {
-          await pb.collection('songs').update(item.song.id, updates, { $autoCancel: false });
+          const { error } = await supabase
+            .from('songs')
+            .update(updates)
+            .eq('id', item.song.id);
+          if (error) throw error;
           fixedCount++;
         }
       } catch (err) {

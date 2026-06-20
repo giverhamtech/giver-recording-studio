@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Download, ArrowLeft, Disc, Calendar, User, Music, Play, Share2 } from 'lucide-react';
-import pb, { authStore } from '@/lib/firebaseClient.js';
+import { supabase } from '@/lib/supabase.js';
+import { getPublicStorageUrl } from '@/lib/storage.js';
 import Header from '@/components/Header.jsx';
 import Footer from '@/components/Footer.jsx';
 import MetaHead from '@/components/MetaHead.jsx';
@@ -12,9 +13,21 @@ import BeatShareButton from '@/components/BeatShareButton.jsx';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 
+const getCategoryId = (song) => song?.category ?? song?.category_id ?? null;
+const getAudioPath = (song) => song?.audioFile ?? song?.audio_file ?? song?.mp3_file ?? null;
+const getCoverPath = (song) => song?.coverImage ?? song?.cover_image ?? null;
+const getCategoryImagePath = (category) =>
+  category?.categoryImage ?? category?.category_image ?? category?.category_Image ?? null;
+const getIsPublic = (song) => {
+  if (typeof song?.privacy !== 'string') return true;
+  return song.privacy.toLowerCase() === 'public';
+};
+
 const SongPreviewPage = () => {
   const { slug } = useParams();
   const [song, setSong] = useState(null);
+  const [songCategory, setSongCategory] = useState(null);
+  const [categoriesById, setCategoriesById] = useState({});
   const [relatedSongs, setRelatedSongs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -24,44 +37,40 @@ const SongPreviewPage = () => {
       try {
         setIsLoading(true);
         setError(null);
-        
-        let fetchedSong;
-        try {
-          fetchedSong = await pb.collection('songs').getFirstListItem(`slug="${slug}" && privacy="public"`, { 
-            expand: 'category',
-            $autoCancel: false 
-          });
-        } catch (e) {
-          try {
-            fetchedSong = await pb.collection('songs').getOne(slug, { 
-              expand: 'category',
-              $autoCancel: false 
-            });
-            // Ensure public if accessed by ID directly by non-admin
-            if (fetchedSong.privacy !== 'public' && !authStore.isValid) {
-               throw new Error("Private song");
-            }
-          } catch (err) {
-            throw new Error("Not found");
-          }
-        }
 
-        setSong(fetchedSong);
+        if (!slug) return;
 
-        // Fetch related public songs
-        if (fetchedSong.category) {
-          const related = await pb.collection('songs').getList(1, 4, {
-            filter: `category="${fetchedSong.category}" && id!="${fetchedSong.id}" && privacy="public"`,
-            sort: '-created',
-            expand: 'category',
-            $autoCancel: false
-          });
-          setRelatedSongs(related.items);
-        }
+        const [{ data: fetchedSong, error }, { data: categories, error: categoriesErr }] = await Promise.all([
+          supabase
+          .from('songs')
+          .select('*'),
+          supabase.from('categories').select('*')
+        ]);
 
-        // Increment play count logic could go here in a real app, 
-        // but typically handled on actual play event
+        if (error) throw error;
+        if (categoriesErr) throw categoriesErr;
+        const songs = fetchedSong || [];
+        const selectedSong = songs.find((s) => s.slug === slug && getIsPublic(s)) || songs.find((s) => String(s.id) === String(slug) && getIsPublic(s));
+        if (!selectedSong) throw new Error('Not found');
 
+        const categoriesMap = (categories || []).reduce((acc, c) => {
+          acc[c.id] = c;
+          return acc;
+        }, {});
+
+        setCategoriesById(categoriesMap);
+        const selectedCategoryId = getCategoryId(selectedSong);
+        setSongCategory(categoriesMap[selectedCategoryId] || null);
+
+        setSong(selectedSong);
+
+        const related = songs
+          .filter((s) => getIsPublic(s))
+          .filter((s) => getCategoryId(s) === selectedCategoryId)
+          .filter((s) => s.id !== selectedSong.id)
+          .sort((a, b) => new Date(b?.created_at || b?.created || 0).getTime() - new Date(a?.created_at || a?.created || 0).getTime())
+          .slice(0, 4);
+        setRelatedSongs(related);
       } catch (err) {
         console.error('Error fetching song:', err);
         setError('Song not found or is not public.');
@@ -70,7 +79,7 @@ const SongPreviewPage = () => {
       }
     };
 
-    if (slug) fetchSongData();
+    fetchSongData();
   }, [slug]);
 
   if (isLoading) {
@@ -108,12 +117,16 @@ const SongPreviewPage = () => {
     );
   }
 
-  const categoryName = song.expand?.category?.name || 'Uncategorized';
+  const categoryName = songCategory?.name || 'Uncategorized';
   let coverImage = 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800&q=80';
-  if (song.coverImage) {
-    coverImage = pb.files.getURL(song, song.coverImage);
-  } else if (song.expand?.category?.categoryImage) {
-    coverImage = pb.files.getURL(song.expand.category, song.expand.category.categoryImage);
+  const songCoverPath = getCoverPath(song);
+  if (songCoverPath) {
+    coverImage = getPublicStorageUrl({ bucket: 'cover-images', path: songCoverPath }) || coverImage;
+  } else {
+    const categoryImage = getCategoryImagePath(songCategory);
+    if (categoryImage) {
+      coverImage = getPublicStorageUrl({ bucket: 'cover-images', path: categoryImage }) || coverImage;
+    }
   }
 
   const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
@@ -135,9 +148,13 @@ const SongPreviewPage = () => {
   // Format beat object for BeatPlayer and Buttons compatibility
   const playerBeatFormat = {
     ...song,
-    artist: 'Giver Recording Studio', // Default producer
+    id: song.id,
+    title: song.title,
+    artist: 'Giver Recording Studio',
     genre: categoryName,
-    categoryImage: coverImage // For fallback in player
+    categoryImage: coverImage,
+    audioFile: getAudioPath(song),
+    url: getAudioPath(song) ? (getPublicStorageUrl({ bucket: 'song-files', path: getAudioPath(song) }) || null) : null
   };
 
   return (
@@ -203,7 +220,7 @@ const SongPreviewPage = () => {
                     </div>
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4" />
-                      <span>{new Date(song.created).toLocaleDateString()}</span>
+                      <span>{new Date(song.created_at || song.created).toLocaleDateString()}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Play className="w-4 h-4" />
@@ -245,15 +262,29 @@ const SongPreviewPage = () => {
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {relatedSongs.map(related => {
+                  {relatedSongs.map((related) => {
                     let relCover = 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800&q=80';
-                    if (related.coverImage) relCover = pb.files.getURL(related, related.coverImage);
-                    else if (related.expand?.category?.categoryImage) relCover = pb.files.getURL(related.expand.category, related.expand.category.categoryImage);
-                    
+                    const relatedCategory = categoriesById[getCategoryId(related)];
+                    const relatedCategoryImage = getCategoryImagePath(relatedCategory);
+                    const relatedCoverPath = getCoverPath(related);
+                    if (relatedCoverPath) {
+                      relCover = getPublicStorageUrl({ bucket: 'cover-images', path: relatedCoverPath }) || relCover;
+                    } else if (relatedCategoryImage) {
+                      relCover = getPublicStorageUrl({ bucket: 'cover-images', path: relatedCategoryImage }) || relCover;
+                    }
+
                     return (
-                      <Link key={related.id} to={`/beat/${related.slug}`} className="group bg-card rounded-xl border border-border overflow-hidden hover:border-primary/50 transition-colors block shadow-sm hover:shadow-md">
+                      <Link
+                        key={related.id}
+                        to={`/beat/${related.slug}`}
+                        className="group bg-card rounded-xl border border-border overflow-hidden hover:border-primary/50 transition-colors block shadow-sm hover:shadow-md"
+                      >
                         <div className="aspect-square bg-muted relative overflow-hidden">
-                          <img src={relCover} alt={related.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                          <img
+                            src={relCover}
+                            alt={related.title}
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
                           <div className="absolute inset-0 bg-background/0 group-hover:bg-background/20 transition-colors flex items-center justify-center">
                             <div className="w-12 h-12 rounded-full bg-primary/90 text-primary-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100 shadow-lg">
                               <Play className="w-5 h-5 ml-1 fill-current" />
@@ -261,11 +292,15 @@ const SongPreviewPage = () => {
                           </div>
                         </div>
                         <div className="p-4">
-                          <h4 className="font-bold text-card-foreground truncate group-hover:text-primary transition-colors">{related.title}</h4>
-                          <p className="text-xs text-muted-foreground mt-1 truncate">{related.expand?.category?.name || 'Uncategorized'}</p>
+                          <h4 className="font-bold text-card-foreground truncate group-hover:text-primary transition-colors">
+                            {related.title}
+                          </h4>
+                          <p className="text-xs text-muted-foreground mt-1 truncate">
+                            {relatedCategory?.name || 'Uncategorized'}
+                          </p>
                         </div>
                       </Link>
-                    )
+                    );
                   })}
                 </div>
               </div>

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { UploadCloud, Image as ImageIcon, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
-import pb from '@/lib/firebaseClient.js';
+import { supabase } from '@/lib/supabase.js';
 
 const CategoryImageUpload = ({ isOpen, onClose, category, onSave, isLoading }) => {
   const [file, setFile] = useState(null);
@@ -41,26 +41,49 @@ const CategoryImageUpload = ({ isOpen, onClose, category, onSave, isLoading }) =
     setIsUploading(true);
     try {
       const formData = new FormData();
-      formData.append('title', `${category.name} Cover`);
-      formData.append('artist', 'System');
-      formData.append('genre', 'System_Category_Image');
-      formData.append('coverImage', file);
-      
-      const existing = await pb.collection('productions').getFullList({
-        filter: `genre="System_Category_Image" && title="${category.name} Cover"`,
-        $autoCancel: false
-      });
-      
-      let record;
-      if (existing.length > 0) {
-        record = await pb.collection('productions').update(existing[0].id, formData, { $autoCancel: false });
+      formData.append('categoryImage', file);
+
+      // Upsert category image in Supabase.
+      // Assumes category row exists in `categories` with column `name` and `categoryImage` storing the storage path.
+
+      const { data: existing, error: existingErr } = await supabase
+        .from('categories')
+        .select('id, categoryImage')
+        .eq('name', category.name)
+        .maybeSingle();
+
+      if (existingErr) throw existingErr;
+
+      const bucket = 'cover-images';
+      const fileExt = file.name.includes('.') ? file.name.split('.').pop() : 'webp';
+      const fileName = `${category.name}-${Date.now()}.${fileExt}`;
+      const storagePath = `category-images/${fileName}`;
+
+      const { error: uploadErr } = await supabase.storage
+        .from(bucket)
+        .upload(storagePath, file, { upsert: true });
+
+      if (uploadErr) throw uploadErr;
+
+      // Save storage path into the DB.
+      const imageUrl = storagePath;
+
+      if (existing?.id) {
+        const { error: updErr } = await supabase
+          .from('categories')
+          .update({ categoryImage: imageUrl })
+          .eq('id', existing.id);
+        if (updErr) throw updErr;
       } else {
-        record = await pb.collection('productions').create(formData, { $autoCancel: false });
+        const { error: insErr } = await supabase
+          .from('categories')
+          .insert({ name: category.name, categoryImage: imageUrl });
+        if (insErr) throw insErr;
       }
-      
-      const imageUrl = pb.files.getURL(record, record.coverImage);
-      
+
       await onSave(category.name, imageUrl);
+
+
       toast.success('Image successfully saved to database');
       onClose();
     } catch (error) {
@@ -72,7 +95,8 @@ const CategoryImageUpload = ({ isOpen, onClose, category, onSave, isLoading }) =
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+
       <DialogContent className="sm:max-w-[600px] bg-card border-border">
         <DialogHeader>
           <DialogTitle className="text-foreground">Update Category Image</DialogTitle>

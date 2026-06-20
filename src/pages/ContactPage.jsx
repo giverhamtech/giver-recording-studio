@@ -9,13 +9,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import pb from '@/lib/firebaseClient';
+import { supabase } from '@/lib/supabase.js';
 import { toast } from 'sonner';
 
 const ContactPage = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    subject: '',
     message: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -59,11 +60,26 @@ const ContactPage = () => {
     setIsSubmitting(true);
 
     try {
-      await pb.collection('contact_messages').create(formData, { $autoCancel: false });
+      const payload = {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        subject: formData.subject.trim(),
+        message: formData.message.trim(),
+        status: 'unread'
+      };
+
+      const { error } = await supabase.from('contact_messages').insert(payload);
+      if (error) throw error;
+
       toast.success('Message sent successfully');
-      setFormData({ name: '', email: '', message: '' });
+      setFormData({ name: '', email: '', subject: '', message: '' });
     } catch (error) {
-      toast.error('Failed to send message');
+      console.error('Contact submit error:', error);
+      if (error?.code === 'PGRST205') {
+        toast.error('Contact system is not configured yet. Please try again later.');
+      } else {
+        toast.error('Failed to send message');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -127,6 +143,18 @@ const ContactPage = () => {
                           name="email"
                           type="email"
                           value={formData.email}
+                          onChange={handleChange}
+                          required
+                          className="bg-background text-foreground"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="subject">Subject</Label>
+                        <Input
+                          id="subject"
+                          name="subject"
+                          value={formData.subject}
                           onChange={handleChange}
                           required
                           className="bg-background text-foreground"

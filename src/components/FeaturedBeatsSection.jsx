@@ -5,8 +5,19 @@ import { ArrowRight, Music } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import pb from '@/lib/firebaseClient.js';
+import { supabase } from '@/lib/supabase.js';
+import { getPublicStorageUrl } from '@/lib/storage.js';
 import FeaturedBeatCard from './FeaturedBeatCard.jsx';
+
+const getCategoryId = (song) => song?.category ?? song?.category_id ?? null;
+const getAudioPath = (song) => song?.audioFile ?? song?.audio_file ?? song?.mp3_file ?? null;
+const getCoverPath = (song) => song?.coverImage ?? song?.cover_image ?? null;
+const getCategoryImagePath = (category) =>
+  category?.categoryImage ?? category?.category_image ?? category?.category_Image ?? null;
+const getIsPublic = (song) => {
+  if (typeof song?.privacy !== 'string') return true;
+  return song.privacy.toLowerCase() === 'public';
+};
 
 const FeaturedBeatsSection = () => {
   const [featuredSongs, setFeaturedSongs] = useState([]);
@@ -16,36 +27,53 @@ const FeaturedBeatsSection = () => {
     const fetchFeatured = async () => {
       try {
         setIsLoading(true);
-        // Querying featured songs up to 50 records as requested
-        const records = await pb.collection('songs').getList(1, 50, {
-          filter: 'featured=true && privacy="public"',
-          sort: '-created',
-          expand: 'category',
-          $autoCancel: false
-        });
+        const [{ data: songsRes, error: songsErr }, { data: categoriesRes, error: categoriesErr }] = await Promise.all([
+          supabase
+            .from('songs')
+            .select('*'),
+          supabase
+            .from('categories')
+            .select('*')
+        ]);
+
+        if (songsErr) throw songsErr;
+        if (categoriesErr) throw categoriesErr;
+
+        const categoriesById = new Map((categoriesRes || []).map((cat) => [cat.id, cat]));
+        const songs = (songsRes || [])
+          .filter((song) => song?.featured === true)
+          .filter((song) => getIsPublic(song))
+          .sort((a, b) => new Date(b?.created_at || b?.created || 0).getTime() - new Date(a?.created_at || a?.created || 0).getTime())
+          .slice(0, 50);
         
-        const formatted = records.items.map(song => {
+        const formatted = songs.map((song) => {
           let coverUrl = 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800&q=80';
+          const categoryObj = categoriesById.get(getCategoryId(song));
+          const coverPath = getCoverPath(song);
           
-          // Verify category image URLs are generated correctly using expanded relation
-          if (song.coverImage) {
-            coverUrl = pb.files.getURL(song, song.coverImage);
-          } else if (song.expand?.category?.categoryImage) {
-            coverUrl = pb.files.getURL(song.expand.category, song.expand.category.categoryImage);
+          if (coverPath) {
+            coverUrl = getPublicStorageUrl({ bucket: 'cover-images', path: coverPath }) || coverUrl;
+          } else {
+            const categoryImage = getCategoryImagePath(categoryObj);
+            if (categoryImage) {
+              coverUrl = getPublicStorageUrl({ bucket: 'cover-images', path: categoryImage }) || coverUrl;
+            }
           }
 
-          // Verify audio file URLs are generated correctly
-          const audioFileUrl = song.audioFile ? pb.files.getURL(song, song.audioFile) : null;
+          const audioPath = getAudioPath(song);
+          const audioFileUrl = audioPath
+            ? getPublicStorageUrl({ bucket: 'song-files', path: audioPath })
+            : null;
 
           return {
             id: song.id,
             title: song.title,
             artist: song.artist || 'Giver Recording Studio',
-            category: song.expand?.category?.name || 'Uncategorized',
+            category: categoryObj?.name || 'Uncategorized',
             artwork: coverUrl,
             url: audioFileUrl,
-            slug: song.slug,
-            audioFile: song.audioFile // passed for download button logic
+            slug: song.slug || song.id,
+            audioFile: audioPath
           };
         });
 
