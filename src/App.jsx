@@ -20,6 +20,8 @@ import ToolsPage from './pages/ToolsPage.jsx';
 import AdminLoginPage from './pages/AdminLoginPage.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
 import AdminSiteSettingsPage from './pages/AdminSiteSettingsPage.jsx';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage.jsx';
+import TermsOfServicePage from './pages/TermsOfServicePage.jsx';
 import StickyMiniPlayer from './components/StickyMiniPlayer.jsx';
 
 function App() {
@@ -44,6 +46,8 @@ function App() {
               <Route path="/booking" element={<BookingPage />} />
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/tools" element={<ToolsPage />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+              <Route path="/terms-of-service" element={<TermsOfServicePage />} />
               <Route path="/admin/login" element={<AdminLoginPage />} />
               <Route
                 path="/admin"

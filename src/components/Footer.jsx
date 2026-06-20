@@ -63,10 +63,10 @@ const Footer = () => {
             {footerCopyright}
           </p>
           <div className="flex gap-6">
-            <Link to="/privacy" className="text-sm text-secondary-foreground/60 hover:text-primary transition-colors duration-200">
+            <Link to="/privacy-policy" className="text-sm text-secondary-foreground/60 hover:text-primary transition-colors duration-200">
               Privacy Policy
             </Link>
-            <Link to="/terms" className="text-sm text-secondary-foreground/60 hover:text-primary transition-colors duration-200">
+            <Link to="/terms-of-service" className="text-sm text-secondary-foreground/60 hover:text-primary transition-colors duration-200">
               Terms of Service
             </Link>
           </div>

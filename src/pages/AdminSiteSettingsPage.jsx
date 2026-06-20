@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/lib/supabase.js';
 import { getPublicStorageUrl } from '@/lib/storage.js';
 import { useSiteSettings } from '@/contexts/SiteSettingsContext.jsx';
+import { getDefaultPrivacyPolicy, getDefaultTermsOfService } from '@/lib/legalDefaults.js';
 
 const sanitizeFileName = (name) => String(name || 'asset').replace(/[^a-zA-Z0-9_.-]/g, '-').toLowerCase();
 
@@ -31,7 +32,9 @@ const AdminSiteSettingsPage = () => {
     twitter_url: '',
     youtube_url: '',
     tiktok_url: '',
-    whatsapp_url: ''
+    whatsapp_url: '',
+    privacy_policy: '',
+    terms_of_service: ''
   });
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
@@ -51,7 +54,9 @@ const AdminSiteSettingsPage = () => {
       twitter_url: siteSettings?.twitter_url || '',
       youtube_url: siteSettings?.youtube_url || '',
       tiktok_url: siteSettings?.tiktok_url || '',
-      whatsapp_url: siteSettings?.whatsapp_url || ''
+      whatsapp_url: siteSettings?.whatsapp_url || '',
+      privacy_policy: siteSettings?.privacy_policy || getDefaultPrivacyPolicy(siteSettings?.contact_email || 'giverrecords@gmail.com'),
+      terms_of_service: siteSettings?.terms_of_service || getDefaultTermsOfService(siteSettings?.contact_email || 'giverrecords@gmail.com')
     });
   }, [siteSettings]);
 
@@ -86,7 +91,9 @@ const AdminSiteSettingsPage = () => {
         twitter_url: formState.twitter_url.trim() || null,
         youtube_url: formState.youtube_url.trim() || null,
         tiktok_url: formState.tiktok_url.trim() || null,
-        whatsapp_url: formState.whatsapp_url.trim() || null
+        whatsapp_url: formState.whatsapp_url.trim() || null,
+        privacy_policy: formState.privacy_policy.trim() || null,
+        terms_of_service: formState.terms_of_service.trim() || null
       });
       toast.success('Site settings updated successfully');
     } catch (error) {
@@ -309,6 +316,30 @@ const AdminSiteSettingsPage = () => {
                     disabled={isLoading || isSaving}
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="privacy-policy">Privacy Policy Content</Label>
+                <Textarea
+                  id="privacy-policy"
+                  className="bg-background min-h-[280px]"
+                  value={formState.privacy_policy}
+                  onChange={(e) => setFormState((prev) => ({ ...prev, privacy_policy: e.target.value }))}
+                  rows={14}
+                  disabled={isLoading || isSaving}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="terms-of-service">Terms of Service Content</Label>
+                <Textarea
+                  id="terms-of-service"
+                  className="bg-background min-h-[280px]"
+                  value={formState.terms_of_service}
+                  onChange={(e) => setFormState((prev) => ({ ...prev, terms_of_service: e.target.value }))}
+                  rows={14}
+                  disabled={isLoading || isSaving}
+                />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

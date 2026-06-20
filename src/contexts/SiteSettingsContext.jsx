@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase.js';
+import { getDefaultPrivacyPolicy, getDefaultTermsOfService } from '@/lib/legalDefaults.js';
 
 const DEFAULT_SITE_SETTINGS = {
   id: 1,
@@ -16,7 +17,9 @@ const DEFAULT_SITE_SETTINGS = {
   twitter_url: 'https://x.com/giverham',
   youtube_url: '',
   tiktok_url: 'https://tiktok.com/@giverham',
-  whatsapp_url: 'https://wa.me/2348075388856'
+  whatsapp_url: 'https://wa.me/2348075388856',
+  privacy_policy: getDefaultPrivacyPolicy('giverrecords@gmail.com'),
+  terms_of_service: getDefaultTermsOfService('giverrecords@gmail.com')
 };
 
 const SiteSettingsContext = createContext(null);
