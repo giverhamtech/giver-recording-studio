@@ -7,7 +7,7 @@ const Footer = () => {
   const { siteSettings } = useSiteSettings();
   const siteName = siteSettings?.site_name || 'Giver Recording Studio';
   const footerText = siteSettings?.footer_text || 'Professional music production, recording, and mixing services in Lagos, Nigeria.';
-  const footerCopyright = siteSettings?.footer_copyright || 'All Rights Reserved';
+  const footerCopyright = siteSettings?.footer_copyright || '';
   const contactEmail = siteSettings?.contact_email || 'giverrecords@gmail.com';
   const phoneNumber = siteSettings?.phone_number || '+2348075388856';
   const whatsappUrl = siteSettings?.whatsapp_url || 'https://wa.me/2348075388856';
@@ -60,7 +60,7 @@ const Footer = () => {
 
         <div className="mt-8 pt-8 border-t border-border/50 flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-sm text-secondary-foreground/60">
-            © {footerCopyright}. {siteName} {new Date().getFullYear()}
+            {footerCopyright}
           </p>
           <div className="flex gap-6">
             <Link to="/privacy" className="text-sm text-secondary-foreground/60 hover:text-primary transition-colors duration-200">
