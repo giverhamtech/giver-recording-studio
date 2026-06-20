@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
+import { Link } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ import ProductionManager from '@/components/admin/ProductionManager.jsx';
 import MessagesManager from '@/components/admin/MessagesManager.jsx';
 import BookingsManager from '@/components/admin/BookingsManager.jsx';
 import useFounderProfile from '@/hooks/useFounderProfile.js';
+import { useSiteSettings } from '@/contexts/SiteSettingsContext.jsx';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { generateSlug } from '@/lib/utils.js';
@@ -47,6 +49,7 @@ const getStatusBadge = (status) => {
 };
 
 const AdminDashboard = () => {
+  const { siteSettings } = useSiteSettings();
   const [stats, setStats] = useState({
     categories: 0,
     songs: 0,
@@ -341,14 +344,28 @@ const AdminDashboard = () => {
         <Header />
         
         <main className="max-w-[1400px] mx-auto px-4 py-8">
-          <div className="flex items-center gap-4 mb-8 pb-4 border-b border-border">
-            <div className="p-3 bg-primary/10 rounded-xl">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8 pb-4 border-b border-border">
+            <div className="flex items-center gap-4">
+              {siteSettings?.logo_url ? (
+                <img
+                  src={siteSettings.logo_url}
+                  alt="Site logo"
+                  className="w-14 h-14 rounded-lg object-contain border border-border bg-card p-1"
+                />
+              ) : null}
+              <div className="p-3 bg-primary/10 rounded-xl">
               <Settings className="w-8 h-8 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-foreground tracking-tight">System Administration</h1>
+                <p className="text-muted-foreground">{siteSettings?.site_name || 'Giver Recording Studio'}{siteSettings?.tagline ? ` - ${siteSettings.tagline}` : ''}</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-foreground tracking-tight">System Administration</h1>
-              <p className="text-muted-foreground">Manage your shared persistent database entries across all systems.</p>
-            </div>
+            <Link to="/admin/site-settings">
+              <Button variant="outline" className="border-primary/40 text-primary hover:bg-primary/10">
+                <Settings className="w-4 h-4 mr-2" /> Site Settings
+              </Button>
+            </Link>
           </div>
           
           <Tabs defaultValue="overview" className="space-y-8">

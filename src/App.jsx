@@ -2,6 +2,7 @@
 import React from 'react';
 import { Route, Routes, BrowserRouter as Router } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext.jsx';
+import { SiteSettingsProvider } from './contexts/SiteSettingsContext.jsx';
 import { PlaybackProvider } from './contexts/PlaybackContext.jsx';
 import { Toaster } from '@/components/ui/sonner';
 import ScrollToTop from './components/ScrollToTop.jsx';
@@ -18,44 +19,55 @@ import ContactPage from './pages/ContactPage.jsx';
 import ToolsPage from './pages/ToolsPage.jsx';
 import AdminLoginPage from './pages/AdminLoginPage.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
+import AdminSiteSettingsPage from './pages/AdminSiteSettingsPage.jsx';
 import StickyMiniPlayer from './components/StickyMiniPlayer.jsx';
 
 function App() {
 
   return (
-    <AuthProvider>
-      <PlaybackProvider>
-        <Router>
-          <ScrollToTop />
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="/beats" element={<PublicBeatsPage />} />
-            
-            {/* New consolidated Song Preview Route mapping to slug */}
-            <Route path="/beat/:slug" element={<SongPreviewPage />} />
-            
-            <Route path="/productions" element={<ProductionsPage />} />
-            <Route path="/submit" element={<ArtistSubmissionPage />} />
-            <Route path="/services" element={<ServicesPage />} />
-            <Route path="/booking" element={<BookingPage />} />
-            <Route path="/contact" element={<ContactPage />} />
-            <Route path="/tools" element={<ToolsPage />} />
-            <Route path="/admin/login" element={<AdminLoginPage />} />
-            <Route
-              path="/admin"
-              element={
-                <ProtectedAdminRoute>
-                  <AdminDashboard />
-                </ProtectedAdminRoute>
-              }
-            />
-          </Routes>
-          <StickyMiniPlayer />
-          <Toaster />
-        </Router>
-      </PlaybackProvider>
-    </AuthProvider>
+    <SiteSettingsProvider>
+      <AuthProvider>
+        <PlaybackProvider>
+          <Router>
+            <ScrollToTop />
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/beats" element={<PublicBeatsPage />} />
+              
+              {/* New consolidated Song Preview Route mapping to slug */}
+              <Route path="/beat/:slug" element={<SongPreviewPage />} />
+              
+              <Route path="/productions" element={<ProductionsPage />} />
+              <Route path="/submit" element={<ArtistSubmissionPage />} />
+              <Route path="/services" element={<ServicesPage />} />
+              <Route path="/booking" element={<BookingPage />} />
+              <Route path="/contact" element={<ContactPage />} />
+              <Route path="/tools" element={<ToolsPage />} />
+              <Route path="/admin/login" element={<AdminLoginPage />} />
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedAdminRoute>
+                    <AdminDashboard />
+                  </ProtectedAdminRoute>
+                }
+              />
+              <Route
+                path="/admin/site-settings"
+                element={
+                  <ProtectedAdminRoute>
+                    <AdminSiteSettingsPage />
+                  </ProtectedAdminRoute>
+                }
+              />
+            </Routes>
+            <StickyMiniPlayer />
+            <Toaster />
+          </Router>
+        </PlaybackProvider>
+      </AuthProvider>
+    </SiteSettingsProvider>
   );
 }
 

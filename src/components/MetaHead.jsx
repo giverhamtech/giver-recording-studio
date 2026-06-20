@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Helmet } from 'react-helmet';
+import { useSiteSettings } from '@/contexts/SiteSettingsContext.jsx';
 
 const MetaHead = ({ 
   title, 
@@ -11,16 +12,18 @@ const MetaHead = ({
   type = 'website',
   schemaData = null 
 }) => {
-  const defaultTitle = "Giver Recording Studio - Premium Music Production";
+  const { siteSettings } = useSiteSettings();
+  const siteName = siteSettings?.site_name || 'Giver Recording Studio';
+  const defaultTitle = `${siteName} - Premium Music Production`;
   const defaultDesc = "Download professional free beats, request custom productions, and explore top-tier mixing and mastering services in Nigeria.";
   const defaultKeywords = "beats, recording studio, music production, afrobeat, trap, amapiano, instrumental";
-  const defaultImage = "https://horizons-cdn.hostinger.com/8376f8c0-710f-4fa1-80c7-c84edc3eaefa/68be90d9445bbceca2aa1bc3d0eb7e0a.jpg";
+  const defaultImage = siteSettings?.logo_url || '/vite.svg';
   
-  const finalTitle = title ? `${title} | Giver Recording Studio` : defaultTitle;
+  const finalTitle = title ? `${title} | ${siteName}` : defaultTitle;
   const finalDesc = description || defaultDesc;
   const finalKeywords = keywords || defaultKeywords;
   const finalImage = image || defaultImage;
-  const finalUrl = url || typeof window !== 'undefined' ? window.location.href : '';
+  const finalUrl = url || (typeof window !== 'undefined' ? window.location.href : '');
 
   return (
     <Helmet>

@@ -3,12 +3,16 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext.jsx';
+import { useSiteSettings } from '@/contexts/SiteSettingsContext.jsx';
 import { Button } from '@/components/ui/button';
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
   const { isAdminAuthenticated, logout } = useAuth();
+  const { siteSettings } = useSiteSettings();
+  const logoUrl = siteSettings?.logo_url || '/vite.svg';
+  const siteName = siteSettings?.site_name || 'GIVER RECORDING STUDIO';
 
   const navLinks = [
     { name: 'Home', path: '/' },
@@ -28,11 +32,11 @@ const Header = () => {
         <div className="flex items-center justify-between h-20">
           <Link to="/" className="flex items-center gap-3 group">
             <img 
-              src="https://horizons-cdn.hostinger.com/8376f8c0-710f-4fa1-80c7-c84edc3eaefa/68be90d9445bbceca2aa1bc3d0eb7e0a.jpg" 
+              src={logoUrl}
               alt="Giver Recording Studio Logo" 
               className="h-12 w-auto object-contain rounded-md transition-transform duration-300 group-hover:scale-105"
             />
-            <span className="text-xl font-bold text-foreground hidden sm:block tracking-tight">GIVER RECORDING STUDIO</span>
+            <span className="text-xl font-bold text-foreground hidden sm:block tracking-tight">{siteName.toUpperCase()}</span>
           </Link>
 
           <nav className="hidden lg:flex items-center gap-1">
@@ -68,6 +72,11 @@ const Header = () => {
                 <Link to="/admin">
                   <Button variant="outline" size="sm" className="border-primary/50 text-primary hover:bg-primary/10">
                     Admin Dashboard
+                  </Button>
+                </Link>
+                <Link to="/admin/site-settings">
+                  <Button variant="outline" size="sm" className="border-primary/50 text-primary hover:bg-primary/10">
+                    Site Settings
                   </Button>
                 </Link>
                 <Button variant="ghost" size="sm" onClick={logout} className="text-muted-foreground hover:text-destructive">
@@ -120,6 +129,11 @@ const Header = () => {
                   <Link to="/admin" onClick={() => setMobileMenuOpen(false)}>
                     <Button variant="outline" size="sm" className="w-full mb-2 border-primary/50 text-primary">
                       Admin Dashboard
+                    </Button>
+                  </Link>
+                  <Link to="/admin/site-settings" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="outline" size="sm" className="w-full mb-2 border-primary/50 text-primary">
+                      Site Settings
                     </Button>
                   </Link>
                   <Button
