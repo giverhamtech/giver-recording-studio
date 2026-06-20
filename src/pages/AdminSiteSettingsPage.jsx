@@ -21,7 +21,17 @@ const AdminSiteSettingsPage = () => {
   const [formState, setFormState] = useState({
     site_name: '',
     tagline: '',
-    favicon_url: ''
+    favicon_url: '',
+    footer_copyright: '',
+    footer_text: '',
+    contact_email: '',
+    phone_number: '',
+    facebook_url: '',
+    instagram_url: '',
+    twitter_url: '',
+    youtube_url: '',
+    tiktok_url: '',
+    whatsapp_url: ''
   });
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
@@ -31,7 +41,17 @@ const AdminSiteSettingsPage = () => {
     setFormState({
       site_name: siteSettings?.site_name || '',
       tagline: siteSettings?.tagline || '',
-      favicon_url: siteSettings?.favicon_url || ''
+      favicon_url: siteSettings?.favicon_url || '',
+      footer_copyright: siteSettings?.footer_copyright || '',
+      footer_text: siteSettings?.footer_text || '',
+      contact_email: siteSettings?.contact_email || '',
+      phone_number: siteSettings?.phone_number || '',
+      facebook_url: siteSettings?.facebook_url || '',
+      instagram_url: siteSettings?.instagram_url || '',
+      twitter_url: siteSettings?.twitter_url || '',
+      youtube_url: siteSettings?.youtube_url || '',
+      tiktok_url: siteSettings?.tiktok_url || '',
+      whatsapp_url: siteSettings?.whatsapp_url || ''
     });
   }, [siteSettings]);
 
@@ -56,7 +76,17 @@ const AdminSiteSettingsPage = () => {
       await saveSiteSettings({
         site_name: formState.site_name.trim() || 'Giver Recording Studio',
         tagline: formState.tagline.trim(),
-        favicon_url: formState.favicon_url.trim() || null
+        favicon_url: formState.favicon_url.trim() || null,
+        footer_copyright: formState.footer_copyright.trim() || null,
+        footer_text: formState.footer_text.trim() || null,
+        contact_email: formState.contact_email.trim() || null,
+        phone_number: formState.phone_number.trim() || null,
+        facebook_url: formState.facebook_url.trim() || null,
+        instagram_url: formState.instagram_url.trim() || null,
+        twitter_url: formState.twitter_url.trim() || null,
+        youtube_url: formState.youtube_url.trim() || null,
+        tiktok_url: formState.tiktok_url.trim() || null,
+        whatsapp_url: formState.whatsapp_url.trim() || null
       });
       toast.success('Site settings updated successfully');
     } catch (error) {
@@ -164,6 +194,121 @@ const AdminSiteSettingsPage = () => {
                   rows={3}
                   disabled={isLoading || isSaving}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="footer-text">Footer Text</Label>
+                <Textarea
+                  id="footer-text"
+                  className="bg-background"
+                  value={formState.footer_text}
+                  onChange={(e) => setFormState((prev) => ({ ...prev, footer_text: e.target.value }))}
+                  rows={2}
+                  disabled={isLoading || isSaving}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="footer-copyright">Footer Copyright</Label>
+                <Input
+                  id="footer-copyright"
+                  className="bg-background"
+                  value={formState.footer_copyright}
+                  onChange={(e) => setFormState((prev) => ({ ...prev, footer_copyright: e.target.value }))}
+                  disabled={isLoading || isSaving}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="contact-email">Contact Email</Label>
+                  <Input
+                    id="contact-email"
+                    className="bg-background"
+                    value={formState.contact_email}
+                    onChange={(e) => setFormState((prev) => ({ ...prev, contact_email: e.target.value }))}
+                    disabled={isLoading || isSaving}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone-number">Phone Number</Label>
+                  <Input
+                    id="phone-number"
+                    className="bg-background"
+                    value={formState.phone_number}
+                    onChange={(e) => setFormState((prev) => ({ ...prev, phone_number: e.target.value }))}
+                    disabled={isLoading || isSaving}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="facebook-url">Facebook URL</Label>
+                  <Input
+                    id="facebook-url"
+                    className="bg-background"
+                    value={formState.facebook_url}
+                    onChange={(e) => setFormState((prev) => ({ ...prev, facebook_url: e.target.value }))}
+                    disabled={isLoading || isSaving}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="instagram-url">Instagram URL</Label>
+                  <Input
+                    id="instagram-url"
+                    className="bg-background"
+                    value={formState.instagram_url}
+                    onChange={(e) => setFormState((prev) => ({ ...prev, instagram_url: e.target.value }))}
+                    disabled={isLoading || isSaving}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="twitter-url">Twitter/X URL</Label>
+                  <Input
+                    id="twitter-url"
+                    className="bg-background"
+                    value={formState.twitter_url}
+                    onChange={(e) => setFormState((prev) => ({ ...prev, twitter_url: e.target.value }))}
+                    disabled={isLoading || isSaving}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="youtube-url">YouTube URL</Label>
+                  <Input
+                    id="youtube-url"
+                    className="bg-background"
+                    value={formState.youtube_url}
+                    onChange={(e) => setFormState((prev) => ({ ...prev, youtube_url: e.target.value }))}
+                    disabled={isLoading || isSaving}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="tiktok-url">TikTok URL</Label>
+                  <Input
+                    id="tiktok-url"
+                    className="bg-background"
+                    value={formState.tiktok_url}
+                    onChange={(e) => setFormState((prev) => ({ ...prev, tiktok_url: e.target.value }))}
+                    disabled={isLoading || isSaving}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="whatsapp-url">WhatsApp URL</Label>
+                  <Input
+                    id="whatsapp-url"
+                    className="bg-background"
+                    value={formState.whatsapp_url}
+                    onChange={(e) => setFormState((prev) => ({ ...prev, whatsapp_url: e.target.value }))}
+                    disabled={isLoading || isSaving}
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -11,8 +11,10 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { supabase } from '@/lib/supabase.js';
 import { toast } from 'sonner';
+import { useSiteSettings } from '@/contexts/SiteSettingsContext.jsx';
 
 const ContactPage = () => {
+  const { siteSettings } = useSiteSettings();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -21,30 +23,35 @@ const ContactPage = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const contactEmail = siteSettings?.contact_email || 'giverrecords@gmail.com';
+  const phoneNumber = siteSettings?.phone_number || '+2348075388856';
+  const whatsappUrl = siteSettings?.whatsapp_url || 'https://wa.me/2348075388856';
+  const instagramUrl = siteSettings?.instagram_url || 'https://instagram.com/giverrecords';
+
   const contactMethods = [
     {
       icon: Mail,
       title: 'Email',
-      value: 'giverrecords@gmail.com',
-      link: 'mailto:giverrecords@gmail.com'
+      value: contactEmail,
+      link: `mailto:${contactEmail}`
     },
     {
       icon: Phone,
       title: 'Phone',
-      value: '+234 807 538 8856',
-      link: 'tel:+2348075388856'
+      value: phoneNumber,
+      link: `tel:${phoneNumber}`
     },
     {
       icon: MessageCircle,
       title: 'WhatsApp',
-      value: '+234 807 538 8856',
-      link: 'https://wa.me/2348075388856'
+      value: phoneNumber,
+      link: whatsappUrl
     },
     {
       icon: Instagram,
       title: 'Instagram',
-      value: '@giverrecords',
-      link: 'https://instagram.com/giverrecords'
+      value: instagramUrl,
+      link: instagramUrl
     }
   ];
 

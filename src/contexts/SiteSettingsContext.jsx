@@ -6,7 +6,17 @@ const DEFAULT_SITE_SETTINGS = {
   site_name: 'Giver Recording Studio',
   tagline: 'Professional music production',
   logo_url: null,
-  favicon_url: '/vite.svg'
+  favicon_url: '/vite.svg',
+  footer_copyright: 'All Rights Reserved',
+  footer_text: 'Professional music production, recording, and mixing services in Lagos, Nigeria.',
+  contact_email: 'giverrecords@gmail.com',
+  phone_number: '+2348075388856',
+  facebook_url: '',
+  instagram_url: 'https://instagram.com/giverrecords',
+  twitter_url: 'https://x.com/giverham',
+  youtube_url: '',
+  tiktok_url: 'https://tiktok.com/@giverham',
+  whatsapp_url: 'https://wa.me/2348075388856'
 };
 
 const SiteSettingsContext = createContext(null);

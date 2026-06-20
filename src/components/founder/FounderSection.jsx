@@ -3,9 +3,11 @@ import { motion } from 'framer-motion';
 import FounderImage from './FounderImage.jsx';
 import FounderBio from './FounderBio.jsx';
 import useFounderProfile from '@/hooks/useFounderProfile.js';
+import { useSiteSettings } from '@/contexts/SiteSettingsContext.jsx';
 
 const FounderSection = () => {
   const { profile, getImageUrl, isLoading } = useFounderProfile();
+  const { siteSettings } = useSiteSettings();
 
   // Show a loading skeleton or a subtle empty state if loading initially without data
   if (isLoading && !profile) {
@@ -36,9 +38,9 @@ const FounderSection = () => {
     professions: 'Music Producer, Crypto Trader, Metro Journalist',
     experience: '8 Years of Experience in Mixing and Mastering',
     biography: 'I am Adelaja M Hassan, a passionate music producer and mixing engineer with an ear for detail. My journey started nearly a decade ago, navigating through the evolving landscapes of both the music industry and digital finance.',
-    instagramUrl: 'https://instagram.com/giverham',
-    tiktokUrl: 'https://tiktok.com/@giverham',
-    twitterUrl: 'https://x.com/giverham'
+    instagramUrl: siteSettings?.instagram_url || 'https://instagram.com/giverham',
+    tiktokUrl: siteSettings?.tiktok_url || 'https://tiktok.com/@giverham',
+    twitterUrl: siteSettings?.twitter_url || 'https://x.com/giverham'
   };
 
   return (

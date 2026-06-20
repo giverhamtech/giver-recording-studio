@@ -400,6 +400,9 @@ const AdminDashboard = () => {
               <TabsTrigger value="settings" className="flex items-center gap-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
                 <UserCircle className="w-4 h-4" /> Profile
               </TabsTrigger>
+              <TabsTrigger value="site-settings" className="flex items-center gap-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
+                <Globe className="w-4 h-4" /> Site Settings
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6 focus:outline-none">
@@ -636,6 +639,22 @@ const AdminDashboard = () => {
 
             <TabsContent value="settings" className="focus:outline-none">
               <FounderManagement />
+            </TabsContent>
+
+            <TabsContent value="site-settings" className="focus:outline-none">
+              <Card className="bg-card border-border max-w-2xl shadow-sm">
+                <CardHeader>
+                  <CardTitle>Global Site Settings</CardTitle>
+                  <CardDescription>Edit logo, contact links, footer text, and social URLs with real-time updates.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Link to="/admin/site-settings">
+                    <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
+                      Open Site Settings
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
             </TabsContent>
 
           </Tabs>
