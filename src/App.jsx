@@ -23,6 +23,7 @@ import AdminSiteSettingsPage from './pages/AdminSiteSettingsPage.jsx';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage.jsx';
 import TermsOfServicePage from './pages/TermsOfServicePage.jsx';
 import StickyMiniPlayer from './components/StickyMiniPlayer.jsx';
+import MetaHead from './components/MetaHead.jsx';
 
 function App() {
 
@@ -31,8 +32,10 @@ function App() {
       <AuthProvider>
         <PlaybackProvider>
           <Router>
+            <MetaHead />
             <ScrollToTop />
             <Routes>
+
               <Route path="/" element={<HomePage />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/beats" element={<PublicBeatsPage />} />
