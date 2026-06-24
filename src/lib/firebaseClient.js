@@ -10,7 +10,7 @@ const TABLE_FALLBACKS = {
 	categories: ['categories'],
 	productions: ['productions'],
 	artistSubmissions: ['artist_uploads', 'artistSubmissions', 'submissions'],
-	founderProfile: ['founderProfile', 'founder_profile'],
+	founderProfile: ['founder_profile', 'founderProfile'],
 	services: ['services'],
 	booking_requests: ['bookings', 'booking_requests'],
 	bookings: ['bookings', 'booking_requests'],

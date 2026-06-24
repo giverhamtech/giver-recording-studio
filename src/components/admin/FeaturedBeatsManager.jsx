@@ -47,14 +47,19 @@ const FeaturedBeatsManager = () => {
 
   const toggleFeaturedMutation = useMutation({
     mutationFn: async ({ id, nextStatus }) => {
+      const updatePayload = nextStatus ? { is_featured: true } : { is_featured: false };
       const { data: updatedSong, error } = await supabase
         .from('songs')
-        .update({ is_featured: nextStatus })
+        .update(updatePayload)
         .eq('id', id)
         .select('*')
         .maybeSingle();
 
       if (error) throw error;
+      if (!updatedSong) {
+        throw new Error('No song row was updated');
+      }
+
       return updatedSong;
     }
   });
@@ -63,6 +68,15 @@ const FeaturedBeatsManager = () => {
     try {
       setUpdatingId(id);
       const nextStatus = !currentStatus;
+      if (nextStatus) {
+        const { error: clearError } = await supabase
+          .from('songs')
+          .update({ is_featured: false })
+          .neq('id', id);
+
+        if (clearError) throw clearError;
+      }
+
       const updatedSong = await toggleFeaturedMutation.mutateAsync({ id, nextStatus });
 
       console.log('Update response:', updatedSong);

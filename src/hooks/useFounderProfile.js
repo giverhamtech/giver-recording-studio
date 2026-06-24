@@ -39,7 +39,7 @@ export const useFounderProfile = () => {
   const [isAvailable, setIsAvailable] = useState(true);
 
   const resolveFounderTable = useCallback(async () => {
-    const candidates = ['founderProfile', 'founder_profile', 'artist_uploads'];
+    const candidates = ['founder_profile', 'founderProfile', 'artist_uploads'];
 
     for (const table of candidates) {
       const { error } = await supabase.from(table).select('*').limit(1);
