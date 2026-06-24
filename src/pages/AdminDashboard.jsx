@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Helmet } from 'react-helmet';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,6 +31,7 @@ import { generateSlug } from '@/lib/utils.js';
 import { Settings, Music, Tags, Inbox, UserCircle, Star, BarChart3, Globe, Lock, EyeOff, Trash2, ShieldAlert, CheckCircle2, XCircle, Loader2, MessageSquare, CalendarCheck2, Disc3 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useAuth } from '@/contexts/AuthContext.jsx';
 
 const getSubmissionSongTitle = (sub) => sub?.songTitle ?? sub?.title ?? 'Untitled';
 const getSubmissionArtistName = (sub) => sub?.artistName ?? sub?.artist_name ?? 'Unknown Artist';
@@ -50,8 +51,25 @@ const getStatusBadge = (status) => {
   return <Badge variant="secondary">Pending</Badge>;
 };
 
+const clearAuthStorage = () => {
+  const authKeyPattern = /(^sb-.*-auth-token$)|(^sb-.*-auth-token-code-verifier$)|(supabase\.auth)/i;
+
+  for (const storage of [window.localStorage, window.sessionStorage]) {
+    const keysToRemove = [];
+    for (let i = 0; i < storage.length; i += 1) {
+      const key = storage.key(i);
+      if (key && authKeyPattern.test(key)) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach((key) => storage.removeItem(key));
+  }
+};
+
 const AdminDashboard = () => {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { logout } = useAuth();
   const { siteSettings } = useSiteSettings();
   const [stats, setStats] = useState({
     categories: 0,
@@ -78,6 +96,18 @@ const AdminDashboard = () => {
     privacy: 'public'
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      await logout();
+      clearAuthStorage();
+      navigate('/admin/login', { replace: true });
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   const fetchSubmissions = async () => {
     const tables = ['artist_uploads', 'artistSubmissions', 'submissions'];
@@ -376,11 +406,30 @@ const AdminDashboard = () => {
                 <p className="text-muted-foreground">{siteSettings?.site_name || 'Giver Recording Studio'}{siteSettings?.tagline ? ` - ${siteSettings.tagline}` : ''}</p>
               </div>
             </div>
-            <Link to="/admin/site-settings">
-              <Button variant="outline" className="border-primary/40 text-primary hover:bg-primary/10">
-                <Settings className="w-4 h-4 mr-2" /> Site Settings
+            <div className="flex flex-wrap items-center gap-2">
+              <Link to="/admin/site-settings">
+                <Button variant="outline" className="border-primary/40 text-primary hover:bg-primary/10">
+                  <Settings className="w-4 h-4 mr-2" /> Site Settings
+                </Button>
+              </Link>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className="border-destructive/40 text-destructive hover:bg-destructive/10"
+              >
+                {isLoggingOut ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Logging out
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-4 h-4 mr-2" /> Logout
+                  </>
+                )}
               </Button>
-            </Link>
+            </div>
           </div>
           
           <Tabs defaultValue="overview" className="space-y-8">
