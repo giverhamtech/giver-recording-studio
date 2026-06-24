@@ -2,14 +2,12 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext.jsx';
 import { useSiteSettings } from '@/contexts/SiteSettingsContext.jsx';
 import { Button } from '@/components/ui/button';
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
-  const { isAdminAuthenticated, logout } = useAuth();
   const { siteSettings } = useSiteSettings();
   const logoUrl = siteSettings?.logo_url || '/vite.svg';
   const siteName = siteSettings?.site_name || 'GIVER RECORDING STUDIO';
@@ -61,29 +59,6 @@ const Header = () => {
                 Submit Music
               </Button>
             </Link>
-            {!isAdminAuthenticated ? (
-              <Link to="/admin/login">
-                <Button variant="outline" size="sm" className="border-primary/50 text-primary hover:bg-primary/10">
-                  Admin Login
-                </Button>
-              </Link>
-            ) : (
-              <>
-                <Link to="/admin">
-                  <Button variant="outline" size="sm" className="border-primary/50 text-primary hover:bg-primary/10">
-                    Admin Dashboard
-                  </Button>
-                </Link>
-                <Link to="/admin/site-settings">
-                  <Button variant="outline" size="sm" className="border-primary/50 text-primary hover:bg-primary/10">
-                    Site Settings
-                  </Button>
-                </Link>
-                <Button variant="ghost" size="sm" onClick={logout} className="text-muted-foreground hover:text-destructive">
-                  Logout
-                </Button>
-              </>
-            )}
           </div>
 
           <button
@@ -118,37 +93,6 @@ const Header = () => {
                   Submit Music
                 </Button>
               </Link>
-              {!isAdminAuthenticated ? (
-                <Link to="/admin/login" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="outline" size="sm" className="w-full border-primary/50 text-primary">
-                    Admin Login
-                  </Button>
-                </Link>
-              ) : (
-                <>
-                  <Link to="/admin" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="outline" size="sm" className="w-full mb-2 border-primary/50 text-primary">
-                      Admin Dashboard
-                    </Button>
-                  </Link>
-                  <Link to="/admin/site-settings" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="outline" size="sm" className="w-full mb-2 border-primary/50 text-primary">
-                      Site Settings
-                    </Button>
-                  </Link>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full text-muted-foreground"
-                    onClick={() => {
-                      logout();
-                      setMobileMenuOpen(false);
-                    }}
-                  >
-                    Logout
-                  </Button>
-                </>
-              )}
             </div>
           </nav>
         </div>

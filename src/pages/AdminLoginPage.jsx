@@ -39,6 +39,8 @@ const AdminLoginPage = () => {
     <>
       <Helmet>
         <title>Admin Login - Giver Recording Studio</title>
+        <meta name="robots" content="noindex,nofollow" />
+        <meta name="googlebot" content="noindex,nofollow" />
       </Helmet>
 
       <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 relative overflow-hidden">

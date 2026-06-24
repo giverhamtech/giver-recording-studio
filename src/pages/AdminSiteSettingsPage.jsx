@@ -139,6 +139,8 @@ const AdminSiteSettingsPage = () => {
     <>
       <Helmet>
         <title>Site Settings - Admin</title>
+        <meta name="robots" content="noindex,nofollow" />
+        <meta name="googlebot" content="noindex,nofollow" />
       </Helmet>
 
       <div className="min-h-screen bg-background pb-20">
