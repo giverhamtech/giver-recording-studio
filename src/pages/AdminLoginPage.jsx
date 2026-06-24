@@ -77,7 +77,7 @@ const AdminLoginPage = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required 
-                    placeholder="admin@giverrecordingstudio.com"
+                    placeholder="Enter administrator email"
                     className="bg-background border-border focus-visible:ring-primary/50 text-foreground"
                     disabled={isLoggingIn}
                   />
