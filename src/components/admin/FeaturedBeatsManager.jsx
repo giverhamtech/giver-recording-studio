@@ -68,15 +68,6 @@ const FeaturedBeatsManager = () => {
     try {
       setUpdatingId(id);
       const nextStatus = !currentStatus;
-      if (nextStatus) {
-        const { error: clearError } = await supabase
-          .from('songs')
-          .update({ is_featured: false })
-          .neq('id', id);
-
-        if (clearError) throw clearError;
-      }
-
       const updatedSong = await toggleFeaturedMutation.mutateAsync({ id, nextStatus });
 
       console.log('Update response:', updatedSong);
