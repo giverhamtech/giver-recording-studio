@@ -69,7 +69,7 @@ const ProductionsPage = () => {
   const latest = visibleProductions.slice(3);
 
   const currentPlaylist = visibleProductions.filter((p) => getAudioPath(p)).map((p) => ({
-    id: p.id,
+    id: `production:${p.id}`,
     title: p.title,
     artist: 'Giver Recording Studio',
     category: 'Production',
@@ -128,6 +128,8 @@ const ProductionsPage = () => {
                       {spotlightProductions.map((item, index) => (
                         <motion.div key={item.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: index * 0.1 }}>
                           <EnhancedAudioCard 
+                            trackId={`production:${item.id}`}
+                            source="production"
                             title={item.title} 
                             artist="Giver Recording Studio"
                             genre="Production"
@@ -152,6 +154,8 @@ const ProductionsPage = () => {
                       {latest.map((item, index) => (
                         <motion.div key={item.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: index * 0.1 }}>
                           <EnhancedAudioCard 
+                            trackId={`production:${item.id}`}
+                            source="production"
                             title={item.title} 
                             artist="Giver Recording Studio"
                             genre="Production"

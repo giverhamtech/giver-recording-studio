@@ -23,6 +23,53 @@ export const PlaybackProvider = ({ children }) => {
   const audioRef = useRef(null);
   const originalQueue = useRef([]);
 
+  const getTrackId = useCallback((track) => track?.id ?? track?.songId ?? track?.slug ?? null, []);
+  const getTrackUrl = useCallback((track) => track?.url ?? track?.audioUrl ?? null, []);
+
+  const normalizeTrack = useCallback((track, fallbackIndex = 0) => {
+    if (!track) return null;
+
+    const url = getTrackUrl(track);
+    if (!url) return null;
+
+    const id = getTrackId(track) ?? `track-${fallbackIndex}-${url}`;
+
+    return {
+      ...track,
+      id,
+      url,
+      title: track.title || 'Untitled Track',
+      artist: track.artist || 'Giver Recording Studio',
+      artwork: track.artwork || null,
+      duration: Number.isFinite(track.duration) ? track.duration : 0
+    };
+  }, [getTrackId, getTrackUrl]);
+
+  const normalizeQueue = useCallback((tracks = []) => (
+    tracks
+      .map((track, index) => normalizeTrack(track, index))
+      .filter(Boolean)
+  ), [normalizeTrack]);
+
+  const areTracksEqual = useCallback((a, b) => {
+    if (!a || !b) return false;
+
+    const aId = getTrackId(a);
+    const bId = getTrackId(b);
+    const aUrl = getTrackUrl(a);
+    const bUrl = getTrackUrl(b);
+
+    if (aId && bId && aUrl && bUrl) return aId === bId && aUrl === bUrl;
+    if (aUrl && bUrl) return aUrl === bUrl;
+    if (aId && bId) return aId === bId;
+    return false;
+  }, [getTrackId, getTrackUrl]);
+
+  const findTrackIndex = useCallback((tracks, track) => {
+    if (!Array.isArray(tracks) || !track) return -1;
+    return tracks.findIndex((candidate) => areTracksEqual(candidate, track));
+  }, [areTracksEqual]);
+
   const supportsMediaSession = typeof navigator !== 'undefined' && 'mediaSession' in navigator;
 
   const updateMediaSessionPositionState = useCallback((position, trackDuration, playbackRate = 1) => {
@@ -209,9 +256,11 @@ export const PlaybackProvider = ({ children }) => {
     }
   }, []);
 
-  const playTrackFromQueue = useCallback((index) => {
-    if (index < 0 || index >= queue.length) return;
-    const track = queue[index];
+  const playTrackFromQueue = useCallback((index, queueOverride = null) => {
+    const activeQueue = Array.isArray(queueOverride) ? queueOverride : queue;
+    if (index < 0 || index >= activeQueue.length) return;
+
+    const track = normalizeTrack(activeQueue[index], index);
     const audio = audioRef.current;
     if (!audio || !track?.url) return;
 
@@ -221,6 +270,9 @@ export const PlaybackProvider = ({ children }) => {
     setPlaybackStatus('buffering');
 
     audio.pause();
+    audio.currentTime = 0;
+    audio.removeAttribute('src');
+    audio.load();
     audio.src = track.url;
     audio.load();
     audio.play().catch(e => {
@@ -231,7 +283,7 @@ export const PlaybackProvider = ({ children }) => {
 
     incrementPlayCount(track.id);
     setIsPlayerVisible(true);
-  }, [incrementPlayCount, queue]);
+  }, [incrementPlayCount, normalizeTrack, queue]);
 
   const pause = useCallback(() => {
     audioRef.current?.pause();
@@ -293,34 +345,46 @@ export const PlaybackProvider = ({ children }) => {
     return () => audio.removeEventListener('ended', onEnded);
   }, [next]);
 
-  const setQueue = (tracks) => {
-    setQueueState(tracks);
-    originalQueue.current = tracks;
-  };
+  const setQueue = useCallback((tracks) => {
+    const normalized = normalizeQueue(tracks);
+    setQueueState(normalized);
+    originalQueue.current = normalized;
+  }, [normalizeQueue]);
 
-  const play = (track, newQueue = null) => {
-    if (newQueue) {
-      setQueueState(newQueue);
-      originalQueue.current = newQueue;
-      const idx = newQueue.findIndex(t => t.id === track.id);
-      playTrackFromQueue(idx !== -1 ? idx : 0);
-    } else {
-      const idx = queue.findIndex(t => t.id === track.id);
+  const play = useCallback((track, newQueue = null) => {
+    const normalizedTrack = normalizeTrack(track);
+    if (!normalizedTrack?.url) {
+      console.warn('Attempted to play track without audio URL:', track);
+      return;
+    }
+
+    if (Array.isArray(newQueue)) {
+      const normalizedQueue = normalizeQueue(newQueue);
+      const queueToUse = normalizedQueue.length > 0 ? normalizedQueue : [normalizedTrack];
+      setQueueState(queueToUse);
+      originalQueue.current = queueToUse;
+      const idx = findTrackIndex(queueToUse, normalizedTrack);
+      playTrackFromQueue(idx !== -1 ? idx : 0, queueToUse);
+      return;
+    }
+
+    if (queue.length > 0) {
+      const idx = findTrackIndex(queue, normalizedTrack);
       if (idx !== -1) {
-        if (currentTrack?.id === track.id) {
+        if (areTracksEqual(currentTrack, queue[idx])) {
           resume();
         } else {
           playTrackFromQueue(idx);
         }
-      } else {
-        // Play single track without replacing whole queue if not provided, just append
-        const newQ = [track];
-        setQueueState(newQ);
-        originalQueue.current = newQ;
-        playTrackFromQueue(0);
+        return;
       }
     }
-  };
+
+    const singleQueue = [normalizedTrack];
+    setQueueState(singleQueue);
+    originalQueue.current = singleQueue;
+    playTrackFromQueue(0, singleQueue);
+  }, [areTracksEqual, currentTrack, findTrackIndex, normalizeQueue, normalizeTrack, playTrackFromQueue, queue, resume]);
 
   const toggleRepeat = () => {
     const modes = ['off', 'one', 'all'];

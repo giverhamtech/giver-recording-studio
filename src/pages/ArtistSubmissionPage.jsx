@@ -198,7 +198,7 @@ const ArtistSubmissionPage = () => {
   const currentPlaylist = approvedSubmissions
     .filter(s => s.audioFile)
     .map(s => ({
-      id: s.id,
+      id: `submission:${s.id}`,
       title: s.songTitle,
       artist: s.artistName,
       category: s.genre,
@@ -417,13 +417,15 @@ const ArtistSubmissionPage = () => {
                   <h3 className="text-xl font-semibold text-foreground mb-4">Preview</h3>
                   {previewAudioUrl ? (
                     <EnhancedAudioCard 
+                      trackId="submission:preview"
+                      source="submission-preview"
                       title={formData.songTitle || 'Untitled Track'}
                       artist={formData.artistName || 'Unknown Artist'}
                       genre={formData.genre || 'Artist Submissions'}
                       coverUrl={displayCoverUrl}
                       audioUrl={previewAudioUrl}
                       playlist={[{
-                        id: 'preview',
+                        id: 'submission:preview',
                         title: formData.songTitle || 'Untitled Track',
                         artist: formData.artistName || 'Unknown Artist',
                         category: formData.genre || 'Artist Submissions',
@@ -467,6 +469,8 @@ const ArtistSubmissionPage = () => {
                     transition={{ duration: 0.5, delay: index * 0.1 }}
                   >
                     <EnhancedAudioCard 
+                      trackId={`submission:${sub.id}`}
+                      source="submission"
                       title={sub.songTitle}
                       artist={sub.artistName}
                       genre={sub.genre || 'Artist Submissions'}

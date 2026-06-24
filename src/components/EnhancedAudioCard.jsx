@@ -6,6 +6,8 @@ import ShareButton from './ShareButton.jsx';
 import { getCategoryImagesMap } from '@/config/beatCategories.js';
 
 const EnhancedAudioCard = ({ 
+  trackId,
+  source = 'card',
   title, 
   artist, 
   genre, 
@@ -22,6 +24,8 @@ const EnhancedAudioCard = ({
   const finalCoverUrl = coverUrl || CATEGORY_IMAGES[genre] || defaultCover;
 
   const songData = {
+    id: trackId || `${source}:${audioUrl || title || 'unknown'}`,
+    source,
     title,
     artist,
     category: genre,
