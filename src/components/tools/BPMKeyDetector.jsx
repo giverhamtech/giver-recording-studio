@@ -4,6 +4,7 @@ import { UploadCloud, Music, FileAudio, RefreshCw, Activity } from 'lucide-react
 import { Button } from '@/components/ui/button';
 
 const SUPPORTED_AUDIO_EXT = /\.(mp3|wav|m4a|aac|flac|ogg)$/i;
+const AUDIO_ACCEPT = 'audio/*,.mp3,.wav,.m4a,.aac,.flac,.ogg';
 const KEY_SIGNATURES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const isSupportedAudioFile = (file) => {
   if (!file) return false;
@@ -14,6 +15,7 @@ const BPMKeyDetector = () => {
   const [file, setFile] = useState(null);
   const [status, setStatus] = useState('idle'); // idle, processing, complete
   const [results, setResults] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -25,13 +27,22 @@ const BPMKeyDetector = () => {
     };
   }, [file]);
 
-  const handleFileChange = (e) => {
-    const selected = e.target.files[0];
+  const handleSelectedFile = (selected) => {
     if (selected && isSupportedAudioFile(selected)) {
       const preview = URL.createObjectURL(selected);
       setFile({ file: selected, name: selected.name, size: (selected.size / 1024 / 1024).toFixed(2), preview });
       processAudio(selected);
     }
+  };
+
+  const handleFileChange = (e) => {
+    handleSelectedFile(e.target.files[0]);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    handleSelectedFile(e.dataTransfer?.files?.[0]);
   };
 
   const processAudio = (audioFile) => {
@@ -100,7 +111,7 @@ const BPMKeyDetector = () => {
       <input 
         id="bpm-key-audio-input"
         type="file" 
-        accept="audio/*" 
+        accept={AUDIO_ACCEPT} 
         className="sr-only" 
         ref={fileInputRef} 
         onChange={handleFileChange}
@@ -109,7 +120,14 @@ const BPMKeyDetector = () => {
       {status === 'idle' && (
         <div 
           onClick={() => fileInputRef.current?.click()}
-          className="border-2 border-dashed border-border hover:border-primary/50 bg-muted/20 rounded-2xl p-12 text-center cursor-pointer transition-all hover:bg-muted/30 group"
+          onDrop={handleDrop}
+          onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+          onDragLeave={() => setIsDragging(false)}
+          className={`border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all group ${
+            isDragging
+              ? 'border-primary bg-primary/5'
+              : 'border-border hover:border-primary/50 bg-muted/20 hover:bg-muted/30'
+          }`}
         >
           <div className="w-16 h-16 bg-background rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform shadow-sm">
             <UploadCloud className="w-8 h-8 text-primary" />

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 const SUPPORTED_AUDIO_EXT = /\.(mp3|wav|m4a|aac|flac|ogg)$/i;
+const AUDIO_ACCEPT = 'audio/*,.mp3,.wav,.m4a,.aac,.flac,.ogg';
 const isSupportedAudioFile = (file) => {
   if (!file) return false;
   return file.type.startsWith('audio/') || SUPPORTED_AUDIO_EXT.test(file.name || '');
@@ -15,14 +16,24 @@ const AudioToLyrics = () => {
   const [status, setStatus] = useState('idle');
   const [lyrics, setLyrics] = useState('');
   const [copied, setCopied] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
 
-  const handleFileChange = (e) => {
-    const selected = e.target.files[0];
+  const handleSelectedFile = (selected) => {
     if (selected && isSupportedAudioFile(selected)) {
       setFile(selected);
       processAudio();
     }
+  };
+
+  const handleFileChange = (e) => {
+    handleSelectedFile(e.target.files[0]);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    handleSelectedFile(e.dataTransfer?.files?.[0]);
   };
 
   const processAudio = () => {
@@ -63,12 +74,19 @@ const AudioToLyrics = () => {
 
   return (
     <div className="space-y-6">
-      <input id="audio-to-lyrics-input" type="file" accept="audio/*" className="sr-only" ref={fileInputRef} onChange={handleFileChange} />
+      <input id="audio-to-lyrics-input" type="file" accept={AUDIO_ACCEPT} className="sr-only" ref={fileInputRef} onChange={handleFileChange} />
       
       {status === 'idle' && (
         <div 
           onClick={() => fileInputRef.current?.click()}
-          className="border-2 border-dashed border-border hover:border-primary/50 bg-muted/20 rounded-2xl p-12 text-center cursor-pointer transition-all hover:bg-muted/30 group"
+          onDrop={handleDrop}
+          onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+          onDragLeave={() => setIsDragging(false)}
+          className={`border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all group ${
+            isDragging
+              ? 'border-primary bg-primary/5'
+              : 'border-border hover:border-primary/50 bg-muted/20 hover:bg-muted/30'
+          }`}
         >
           <div className="w-16 h-16 bg-background rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
             <UploadCloud className="w-8 h-8 text-primary" />

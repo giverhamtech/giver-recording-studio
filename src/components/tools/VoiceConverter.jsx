@@ -4,6 +4,7 @@ import { UploadCloud, FileAudio as AudioWaveform, Play, Pause, RefreshCw, FileAu
 import { Button } from '@/components/ui/button';
 
 const SUPPORTED_AUDIO_EXT = /\.(mp3|wav|m4a|aac|flac|ogg)$/i;
+const AUDIO_ACCEPT = 'audio/*,.mp3,.wav,.m4a,.aac,.flac,.ogg';
 const isSupportedAudioFile = (file) => {
   if (!file) return false;
   return file.type.startsWith('audio/') || SUPPORTED_AUDIO_EXT.test(file.name || '');
@@ -23,6 +24,7 @@ const VoiceConverter = () => {
   const [file, setFile] = useState(null);
   const [activePreset, setActivePreset] = useState(PRESETS[0]);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
   const audioRef = useRef(null);
 
@@ -32,8 +34,7 @@ const VoiceConverter = () => {
     };
   }, [file]);
 
-  const handleFileChange = (e) => {
-    const selected = e.target.files[0];
+  const handleSelectedFile = (selected) => {
     if (selected && isSupportedAudioFile(selected)) {
       const preview = URL.createObjectURL(selected);
       setFile({ file: selected, name: selected.name, preview });
@@ -41,6 +42,16 @@ const VoiceConverter = () => {
         audioRef.current.src = preview;
       }
     }
+  };
+
+  const handleFileChange = (e) => {
+    handleSelectedFile(e.target.files[0]);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    handleSelectedFile(e.dataTransfer?.files?.[0]);
   };
 
   const applyPreset = (preset) => {
@@ -85,12 +96,19 @@ const VoiceConverter = () => {
         className="sr-only" 
       />
       
-      <input id="voice-converter-audio-input" type="file" accept="audio/*" className="sr-only" ref={fileInputRef} onChange={handleFileChange} />
+      <input id="voice-converter-audio-input" type="file" accept={AUDIO_ACCEPT} className="sr-only" ref={fileInputRef} onChange={handleFileChange} />
       
       {!file ? (
         <div 
           onClick={() => fileInputRef.current?.click()}
-          className="border-2 border-dashed border-border hover:border-primary/50 bg-muted/20 rounded-2xl p-12 text-center cursor-pointer transition-all hover:bg-muted/30 group"
+          onDrop={handleDrop}
+          onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+          onDragLeave={() => setIsDragging(false)}
+          className={`border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all group ${
+            isDragging
+              ? 'border-primary bg-primary/5'
+              : 'border-border hover:border-primary/50 bg-muted/20 hover:bg-muted/30'
+          }`}
         >
           <div className="w-16 h-16 bg-background rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
             <UploadCloud className="w-8 h-8 text-primary" />
