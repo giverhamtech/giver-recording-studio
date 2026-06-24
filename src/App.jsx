@@ -24,55 +24,58 @@ import PrivacyPolicyPage from './pages/PrivacyPolicyPage.jsx';
 import TermsOfServicePage from './pages/TermsOfServicePage.jsx';
 import StickyMiniPlayer from './components/StickyMiniPlayer.jsx';
 import MetaHead from './components/MetaHead.jsx';
+import AppErrorBoundary from '@/components/AppErrorBoundary.jsx';
 
 function App() {
 
   return (
     <SiteSettingsProvider>
       <AuthProvider>
-        <PlaybackProvider>
-          <Router>
-            <MetaHead />
-            <ScrollToTop />
-            <Routes>
+        <AppErrorBoundary>
+          <PlaybackProvider>
+            <Router>
+              <MetaHead />
+              <ScrollToTop />
+              <Routes>
 
-              <Route path="/" element={<HomePage />} />
-              <Route path="/about" element={<AboutPage />} />
-              <Route path="/beats" element={<PublicBeatsPage />} />
-              
-              {/* New consolidated Song Preview Route mapping to slug */}
-              <Route path="/beat/:slug" element={<SongPreviewPage />} />
-              
-              <Route path="/productions" element={<ProductionsPage />} />
-              <Route path="/submit" element={<ArtistSubmissionPage />} />
-              <Route path="/services" element={<ServicesPage />} />
-              <Route path="/booking" element={<BookingPage />} />
-              <Route path="/contact" element={<ContactPage />} />
-              <Route path="/tools" element={<ToolsPage />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-              <Route path="/terms-of-service" element={<TermsOfServicePage />} />
-              <Route path="/admin/login" element={<AdminLoginPage />} />
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedAdminRoute>
-                    <AdminDashboard />
-                  </ProtectedAdminRoute>
-                }
-              />
-              <Route
-                path="/admin/site-settings"
-                element={
-                  <ProtectedAdminRoute>
-                    <AdminSiteSettingsPage />
-                  </ProtectedAdminRoute>
-                }
-              />
-            </Routes>
-            <StickyMiniPlayer />
-            <Toaster />
-          </Router>
-        </PlaybackProvider>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/beats" element={<PublicBeatsPage />} />
+                
+                {/* New consolidated Song Preview Route mapping to slug */}
+                <Route path="/beat/:slug" element={<SongPreviewPage />} />
+                
+                <Route path="/productions" element={<ProductionsPage />} />
+                <Route path="/submit" element={<ArtistSubmissionPage />} />
+                <Route path="/services" element={<ServicesPage />} />
+                <Route path="/booking" element={<BookingPage />} />
+                <Route path="/contact" element={<ContactPage />} />
+                <Route path="/tools" element={<ToolsPage />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+                <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+                <Route path="/admin/login" element={<AdminLoginPage />} />
+                <Route
+                  path="/admin"
+                  element={
+                    <ProtectedAdminRoute>
+                      <AdminDashboard />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/site-settings"
+                  element={
+                    <ProtectedAdminRoute>
+                      <AdminSiteSettingsPage />
+                    </ProtectedAdminRoute>
+                  }
+                />
+              </Routes>
+              <StickyMiniPlayer />
+              <Toaster />
+            </Router>
+          </PlaybackProvider>
+        </AppErrorBoundary>
       </AuthProvider>
     </SiteSettingsProvider>
   );

@@ -153,6 +153,28 @@ export const PlaybackProvider = ({ children }) => {
     setIsPlayerVisible(true);
   }, [incrementPlayCount, queue]);
 
+  const pause = useCallback(() => {
+    audioRef.current?.pause();
+  }, []);
+
+  const resume = useCallback(() => {
+    audioRef.current?.play().catch(e => console.error(e));
+  }, []);
+
+  const seek = useCallback((time) => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = time;
+      setCurrentTime(time);
+    }
+  }, []);
+
+  const setVolume = useCallback((val) => {
+    setVolumeState(val);
+    if (audioRef.current) {
+      audioRef.current.volume = val;
+    }
+  }, []);
+
   const next = useCallback(() => {
     if (queue.length === 0 || !currentTrack) return;
     
@@ -211,28 +233,6 @@ export const PlaybackProvider = ({ children }) => {
       }
     }
   };
-
-  const pause = useCallback(() => {
-    audioRef.current?.pause();
-  }, []);
-
-  const resume = useCallback(() => {
-    audioRef.current?.play().catch(e => console.error(e));
-  }, []);
-
-  const seek = useCallback((time) => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = time;
-      setCurrentTime(time);
-    }
-  }, []);
-
-  const setVolume = useCallback((val) => {
-    setVolumeState(val);
-    if (audioRef.current) {
-      audioRef.current.volume = val;
-    }
-  }, []);
 
   const toggleRepeat = () => {
     const modes = ['off', 'one', 'all'];
