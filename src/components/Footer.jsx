@@ -25,7 +25,7 @@ const Footer = () => {
               {footerText}
             </p>
             <p className="text-xs text-secondary-foreground/60">
-              Business Registration NO: 9481212
+              Business Registration NO: 3426996
             </p>
           </div>
 

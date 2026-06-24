@@ -236,7 +236,7 @@ const ContactPage = () => {
                       <div>
                         <h3 className="font-semibold text-foreground mb-2">Business Information</h3>
                         <p className="text-sm text-foreground/80">
-                          Registration Number: 9481212
+                          Registration Number: 3426996
                         </p>
                       </div>
                     </div>
