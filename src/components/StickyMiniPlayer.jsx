@@ -87,6 +87,11 @@ const StickyMiniPlayer = () => {
     seek(val);
   };
 
+  const waveformBars = Array.from({ length: 40 }).map((_, index) => ({
+    id: index,
+    h: 16 + ((index * 9) % 24)
+  }));
+
   return (
     <AnimatePresence mode="wait">
       {isMinimized ? (
@@ -98,17 +103,15 @@ const StickyMiniPlayer = () => {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: "100%", opacity: 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-xl border-t border-border shadow-[0_-10px_40px_rgba(0,0,0,0.6)] touch-none"
+          className="fixed bottom-0 left-0 right-0 z-50 glass-panel border-t border-white/20 shadow-[0_-18px_48px_rgba(1,9,20,0.7)] touch-none"
           onTouchStart={onTouchStart}
           onTouchMove={onTouchMove}
           onTouchEnd={onTouchEnd}
         >
-          {/* Mobile Swipe Indicator */}
           <div className="w-full flex justify-center pt-2 pb-1 md:hidden">
             <div className="w-12 h-1 bg-muted rounded-full"></div>
           </div>
 
-          {/* Progress Bar (Desktop & Mobile combined logic) */}
           <div className="absolute top-0 left-0 right-0 h-1 bg-muted/30 hidden md:block group cursor-pointer">
             <input 
               type="range" 
@@ -119,7 +122,7 @@ const StickyMiniPlayer = () => {
               className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer"
             />
             <div 
-              className="h-full bg-primary transition-all duration-100 ease-linear pointer-events-none group-hover:h-2"
+              className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-100 ease-linear pointer-events-none group-hover:h-2"
               style={{ width: `${progress * 100}%` }}
             />
           </div>
@@ -135,29 +138,28 @@ const StickyMiniPlayer = () => {
             />
             <div className="w-full h-1 bg-muted/30 rounded-full overflow-hidden">
                <div 
-                className="h-full bg-primary transition-all duration-100 ease-linear"
+                className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-100 ease-linear"
                 style={{ width: `${progress * 100}%` }}
               />
             </div>
           </div>
 
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-[90px] md:h-[100px] flex flex-col md:flex-row items-center justify-between gap-2 md:gap-4 mt-2 md:mt-0 pb-3 md:pb-0 relative">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-[96px] md:h-[106px] flex flex-col md:flex-row items-center justify-between gap-2 md:gap-4 mt-2 md:mt-0 pb-3 md:pb-0 relative">
             
-            {/* Header controls mobile */}
             <div className="absolute top-[-25px] right-2 flex items-center gap-1 md:hidden">
                 <Button variant="ghost" size="icon" onClick={closePlayer} className="h-8 w-8 text-muted-foreground hover:text-destructive">
                   <X className="w-5 h-5" />
                 </Button>
             </div>
 
-            {/* Track Info */}
             <div className="flex items-center gap-4 w-full md:w-[30%] min-w-0">
-              <div className="relative w-12 h-12 md:w-16 md:h-16 rounded-lg overflow-hidden shrink-0 shadow-md">
+              <div className="relative w-12 h-12 md:w-16 md:h-16 rounded-xl overflow-hidden shrink-0 shadow-md border border-white/10">
                 <img 
                   src={currentTrack?.artwork || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=200&q=80'} 
                   alt={currentTrack?.title}
                   className={`w-full h-full object-cover transition-transform duration-1000 ${isPlaying ? 'scale-110' : 'scale-100'}`}
                 />
+                <span className={`absolute inset-0 pointer-events-none ${isPlaying ? 'bg-primary/10' : ''}`} />
               </div>
               <div className="min-w-0 flex-1 pr-12 md:pr-0">
                 <h4 className="text-base md:text-lg font-bold text-foreground truncate">{currentTrack?.title}</h4>
@@ -165,7 +167,6 @@ const StickyMiniPlayer = () => {
               </div>
             </div>
 
-            {/* Center Controls */}
             <div className="flex flex-col items-center w-full md:w-[40%] max-w-md">
               <div className="flex items-center gap-4 md:gap-6">
                 <Button variant="ghost" size="icon" onClick={toggleShuffle} className={`h-8 w-8 hidden sm:flex transition-colors ${shuffle ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
@@ -179,7 +180,7 @@ const StickyMiniPlayer = () => {
                 <Button
                   size="icon"
                   onClick={togglePlayPause}
-                  className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-primary text-primary-foreground shadow-[0_0_15px_hsl(var(--primary)/0.4)] hover:scale-105 transition-all shrink-0"
+                  className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-primary text-primary-foreground shadow-[0_0_20px_hsl(var(--primary)/0.45)] hover:scale-105 transition-all shrink-0"
                 >
                   {isPlaying ? <Pause className="w-6 h-6 md:w-7 md:h-7 fill-current" /> : <Play className="w-6 h-6 md:w-7 md:h-7 ml-1 fill-current" />}
                 </Button>
@@ -192,6 +193,19 @@ const StickyMiniPlayer = () => {
                   {repeatMode === 'one' ? <Repeat1 className="w-4 h-4" /> : <Repeat className="w-4 h-4" />}
                 </Button>
               </div>
+
+              <div className="hidden md:flex items-end gap-[3px] h-7 mt-2 px-2 w-full justify-center">
+                {waveformBars.map((bar) => {
+                  const played = progress > 0 && bar.id / waveformBars.length <= progress;
+                  return (
+                    <span
+                      key={`wave-player-${bar.id}`}
+                      className={`equalizer-bar w-1 rounded-sm ${played ? 'bg-primary' : 'bg-muted-foreground/35'}`}
+                      style={{ height: `${bar.h}px`, animationDelay: `${(bar.id % 6) * 0.1}s` }}
+                    />
+                  );
+                })}
+              </div>
               
               <div className="hidden md:flex w-full items-center justify-between text-xs text-muted-foreground mt-2 px-8">
                 <span>{formatTime(currentTime)}</span>
@@ -199,7 +213,6 @@ const StickyMiniPlayer = () => {
               </div>
             </div>
 
-            {/* Right Controls */}
             <div className="hidden md:flex items-center justify-end gap-3 w-[30%] shrink-0">
               <div className="flex items-center gap-2 mr-2">
                 <Button variant="ghost" size="icon" onClick={handleVolumeToggle} className="h-8 w-8 text-muted-foreground hover:text-foreground">

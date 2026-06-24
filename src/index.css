@@ -6,15 +6,14 @@
 
 @layer base {
   :root {
-    /* Premium Dark Navy/Charcoal Theme with Teal Accents */
-    --background: 222 47% 4%; 
-    --foreground: 210 40% 98%; 
+    --background: 216 52% 5%;
+    --foreground: 210 40% 98%;
     
     /* Requested specific variables */
-    --teal: 173 80% 40%; /* #14b8a6 */
-    --orange-teal-typo: 20 83.3% 51.4%; /* Included for prompt exact compliance but using real teal for UI */
+    --teal: 178 83% 43%;
+    --orange-teal-typo: 20 83.3% 51.4%;
     --dark-bg: 222 47% 4%;
-    --card-bg: 222 47% 7%;
+    --card-bg: 218 44% 9%;
     --text-primary: 210 40% 98%;
     --text-secondary: 215 20.2% 65.1%;
 
@@ -27,29 +26,36 @@
     --primary: var(--teal);
     --primary-foreground: 0 0% 0%;
     
-    --secondary: 222 47% 10%; 
+    --secondary: 218 38% 13%;
     --secondary-foreground: 210 40% 98%;
-    
-    --accent: 173 80% 20%; 
+
+    --accent: 202 89% 43%;
     --accent-foreground: 173 80% 90%;
-    
-    --border: 222 47% 15%; 
-    
-    --card: var(--card-bg); 
+
+    --border: 216 34% 19%;
+
+    --card: var(--card-bg);
     --card-foreground: var(--text-primary);
-    
-    --muted: 222 47% 15%; 
+
+    --muted: 217 35% 16%;
     --muted-foreground: var(--text-secondary);
-    
+
     --ring: var(--teal);
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    
-    --popover: 222 47% 7%;
+
+    --popover: 218 44% 9%;
     --popover-foreground: 210 40% 98%;
-    
-    --input: 222 47% 15%;
+
+    --input: 216 34% 19%;
     --radius: 0.75rem;
+
+    --page-gradient-1: radial-gradient(circle at 15% 20%, hsl(178 83% 43% / 0.18), transparent 42%);
+    --page-gradient-2: radial-gradient(circle at 80% 30%, hsl(202 89% 43% / 0.16), transparent 48%);
+    --page-gradient-3: radial-gradient(circle at 52% 95%, hsl(188 91% 39% / 0.14), transparent 52%);
+    --glass-fill: linear-gradient(140deg, hsl(210 40% 98% / 0.09), hsl(210 40% 98% / 0.02));
+    --glass-border: hsl(210 40% 98% / 0.2);
+    --neon-shadow: 0 0 0 1px hsl(var(--primary) / 0.22), 0 12px 34px hsl(192 89% 55% / 0.22);
   }
 
   .dark {
@@ -57,39 +63,52 @@
     --foreground: var(--text-primary);
     --primary: var(--teal);
     --primary-foreground: 0 0% 0%;
-    --secondary: 222 47% 10%;
+    --secondary: 218 38% 13%;
     --secondary-foreground: var(--text-primary);
-    --accent: 173 80% 20%;
+    --accent: 202 89% 43%;
     --accent-foreground: 173 80% 90%;
-    --border: 222 47% 15%;
+    --border: 216 34% 19%;
     --card: var(--card-bg);
     --card-foreground: var(--text-primary);
-    --muted: 222 47% 15%;
+    --muted: 217 35% 16%;
     --muted-foreground: var(--text-secondary);
     --ring: var(--teal);
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --popover: 222 47% 7%;
+    --popover: 218 44% 9%;
     --popover-foreground: var(--text-primary);
-    --input: 222 47% 15%;
+    --input: 216 34% 19%;
   }
 
   * {
     scroll-behavior: smooth;
+    @apply border-border;
   }
 
   body {
     font-family: "Outfit", sans-serif;
     overflow-x: hidden;
     background-color: hsl(var(--background));
+    background-image: var(--page-gradient-1), var(--page-gradient-2), var(--page-gradient-3);
+    background-attachment: fixed;
     color: hsl(var(--foreground));
-    padding-bottom: 90px;
+    padding-bottom: 104px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(180deg, hsl(210 40% 98% / 0.03) 0%, transparent 30%, transparent 100%);
+    z-index: -1;
+  }
+
   h1, h2, h3, h4, h5, h6 {
     text-wrap: balance;
+    letter-spacing: -0.02em;
   }
 }
 
@@ -97,13 +116,68 @@
   .text-sm-token { font-size: var(--font-size-sm); }
   .text-base-token { font-size: var(--font-size-base); }
   .text-lg-token { font-size: var(--font-size-lg); }
-  
-  .premium-card {
-    @apply bg-card border border-border rounded-2xl shadow-sm hover:shadow-lg hover:border-primary/30 transition-all duration-300;
+
+  .section-shell {
+    @apply relative overflow-hidden;
   }
-  
+
+  .section-shell::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(130deg, hsl(var(--primary) / 0.08), transparent 45%, hsl(var(--accent) / 0.08));
+    opacity: 0.6;
+  }
+
+  .glass-panel {
+    background: var(--glass-fill);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 24px 70px hsl(220 60% 2% / 0.45);
+    backdrop-filter: blur(18px);
+  }
+
+  .neon-outline {
+    box-shadow: var(--neon-shadow);
+  }
+
+  .section-separator {
+    height: 1px;
+    width: 100%;
+    background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.5), hsl(var(--accent) / 0.45), transparent);
+  }
+
+  .premium-card {
+    @apply rounded-2xl border border-border/80 bg-card/75 shadow-[0_18px_45px_hsl(220_55%_3%_/_0.35)] backdrop-blur-xl transition-all duration-300;
+  }
+
+  .premium-card:hover {
+    transform: translateY(-4px);
+    border-color: hsl(var(--primary) / 0.46);
+    box-shadow: 0 24px 58px hsl(190 80% 35% / 0.25);
+  }
+
   .premium-button {
-    @apply bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_15px_hsl(var(--primary)/0.3)] transition-all font-semibold rounded-lg;
+    @apply rounded-lg bg-primary text-primary-foreground font-semibold transition-all;
+    box-shadow: 0 0 18px hsl(var(--primary) / 0.35);
+  }
+
+  .premium-button:hover {
+    transform: translateY(-1px) scale(1.01);
+    box-shadow: 0 0 24px hsl(var(--primary) / 0.45);
+  }
+
+  .floating-particle {
+    animation: float-drift 9s ease-in-out infinite;
+  }
+
+  .equalizer-bar {
+    animation: equalizer-pulse 1.3s ease-in-out infinite;
+    transform-origin: bottom;
+  }
+
+  .wave-line {
+    animation: wave-shift 2.4s linear infinite;
   }
 }
 
@@ -161,4 +235,20 @@ input[type=range].scrubber:focus {
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.5); 
+}
+
+@keyframes float-drift {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(0, -12px, 0) scale(1.04); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes equalizer-pulse {
+  0%, 100% { transform: scaleY(0.25); opacity: 0.5; }
+  50% { transform: scaleY(1); opacity: 1; }
+}
+
+@keyframes wave-shift {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-30px); }
 }

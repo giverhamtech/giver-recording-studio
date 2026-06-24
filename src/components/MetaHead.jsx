@@ -16,7 +16,7 @@ const MetaHead = ({
 
   // Canonical metadata defaults (used when page doesn't provide overrides)
   const canonicalTitle = 'Giver Recording Studio';
-  const canonicalDescription = 'Professional music production, recording, mixing, and mastering services in Lagos, Nigeria.';
+  const canonicalDescription = 'Professional music production, recording, mixing and mastering services in Lagos, Nigeria.';
   const canonicalUrl = 'https://www.giverrecords.com';
   const canonicalImage = 'https://www.giverrecords.com/og-image.jpg';
 
@@ -46,13 +46,16 @@ const MetaHead = ({
       <title>{finalTitle}</title>
       <meta name="description" content={finalDesc} />
       <meta name="keywords" content={finalKeywords} />
+      <link rel="canonical" href={finalUrl} />
 
       {/* Open Graph / Facebook */}
       <meta property="og:type" content={type} />
       <meta property="og:url" content={finalUrl} />
+      <meta property="og:site_name" content={siteName} />
       <meta property="og:title" content={finalTitle} />
       <meta property="og:description" content={finalDesc} />
       <meta property="og:image" content={finalImage} />
+      <meta property="og:image:alt" content={`${siteName} preview`} />
 
       {/* Twitter */}
       <meta name="twitter:card" content="summary_large_image" />
@@ -60,6 +63,7 @@ const MetaHead = ({
       <meta name="twitter:title" content={finalTitle} />
       <meta name="twitter:description" content={finalDesc} />
       <meta name="twitter:image" content={finalImage} />
+      <meta name="twitter:image:alt" content={`${siteName} preview`} />
       <meta name="twitter:creator" content="@GIVERRECORDS" />
 
       {schemaData && (

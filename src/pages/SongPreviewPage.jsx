@@ -23,6 +23,14 @@ const getIsPublic = (song) => {
   return song.privacy.toLowerCase() === 'public';
 };
 
+const formatDurationLabel = (seconds) => {
+  const num = Number(seconds);
+  if (!Number.isFinite(num) || num <= 0) return null;
+  const min = Math.floor(num / 60);
+  const sec = Math.floor(num % 60);
+  return `${min}:${String(sec).padStart(2, '0')}`;
+};
+
 const SongPreviewPage = () => {
   const { slug } = useParams();
   const [song, setSong] = useState(null);
@@ -130,6 +138,7 @@ const SongPreviewPage = () => {
   }
 
   const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
+  const durationLabel = formatDurationLabel(song?.duration);
 
   const schemaData = {
     "@context": "https://schema.org",
@@ -144,6 +153,10 @@ const SongPreviewPage = () => {
     "description": song.description || `${categoryName} track produced by Giver Recording Studio`,
     "url": currentUrl
   };
+
+  if (durationLabel) {
+    schemaData.duration = `PT${Math.floor(Number(song.duration) / 60)}M${Math.floor(Number(song.duration) % 60)}S`;
+  }
 
   // Format beat object for BeatPlayer and Buttons compatibility
   const playerBeatFormat = {
@@ -160,8 +173,8 @@ const SongPreviewPage = () => {
   return (
     <>
       <MetaHead 
-        title={song.title}
-        description={song.description || `Download ${song.title}, a premium ${categoryName} track by Giver Recording Studio.`}
+        title={`${song.title} | Giver Recording Studio`}
+        description={song.description || `${song.title} by Giver Recording Studio. ${durationLabel ? `Duration ${durationLabel}. ` : ''}Professional ${categoryName} music crafted in Lagos, Nigeria.`}
         image={coverImage}
         url={currentUrl}
         type="music.song"
@@ -224,8 +237,14 @@ const SongPreviewPage = () => {
                     </div>
                     <div className="flex items-center gap-2">
                       <Play className="w-4 h-4" />
-                      <span>{song.playCount} plays</span>
+                      <span>{song.playCount || 0} plays</span>
                     </div>
+                    {durationLabel && (
+                      <div className="flex items-center gap-2">
+                        <Disc className="w-4 h-4" />
+                        <span>{durationLabel}</span>
+                      </div>
+                    )}
                   </div>
 
                   {song.description && (

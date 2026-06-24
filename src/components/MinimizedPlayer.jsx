@@ -21,6 +21,7 @@ const MinimizedPlayer = () => {
   if (!currentTrack) return null;
 
   const progress = duration > 0 ? currentTime / duration : 0;
+  const bars = Array.from({ length: 16 }).map((_, index) => 10 + ((index * 6) % 14));
 
   const handleTogglePlay = (e) => {
     e.stopPropagation();
@@ -37,12 +38,12 @@ const MinimizedPlayer = () => {
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 50, opacity: 0 }}
       transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-      className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-xl border-t border-border shadow-[0_-5px_20px_rgba(0,0,0,0.4)] cursor-pointer touch-none"
+      className="fixed bottom-0 left-0 right-0 z-50 glass-panel border-t border-white/20 shadow-[0_-12px_30px_rgba(0,0,0,0.45)] cursor-pointer touch-none"
       onClick={toggleMinimize}
     >
       <div className="absolute top-0 left-0 right-0 h-[3px] bg-muted/30">
         <div 
-          className="h-full bg-primary transition-all duration-100"
+          className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-100"
           style={{ width: `${progress * 100}%` }}
         />
       </div>
@@ -50,7 +51,7 @@ const MinimizedPlayer = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 md:h-20 flex items-center justify-between gap-4">
         
         <div className="flex items-center gap-3 min-w-0 flex-1">
-          <div className="relative w-10 h-10 md:w-12 md:h-12 rounded overflow-hidden shrink-0 shadow-sm border border-border/50">
+          <div className="relative w-10 h-10 md:w-12 md:h-12 rounded-lg overflow-hidden shrink-0 shadow-sm border border-white/10">
             <img 
               src={currentTrack.artwork || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=200&q=80'} 
               alt={currentTrack.title}
@@ -60,6 +61,15 @@ const MinimizedPlayer = () => {
           <div className="min-w-0 pr-2">
             <h4 className="text-sm md:text-base font-bold text-foreground truncate">{currentTrack.title}</h4>
             <p className="text-xs text-muted-foreground truncate">{currentTrack.artist || 'Giver Recording Studio'}</p>
+            <div className="hidden sm:flex items-end gap-[2px] h-3 mt-1">
+              {bars.map((height, index) => (
+                <span
+                  key={`mini-wave-${index}`}
+                  className={`equalizer-bar w-[3px] rounded-sm ${isPlaying ? 'bg-primary/85' : 'bg-muted-foreground/45'}`}
+                  style={{ height: `${height}px`, animationDelay: `${(index % 4) * 0.08}s` }}
+                />
+              ))}
+            </div>
           </div>
         </div>
 

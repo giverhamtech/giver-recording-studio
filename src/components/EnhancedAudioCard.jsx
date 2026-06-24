@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import EnhancedAudioPlayer from './EnhancedAudioPlayer.jsx';
+import ShareButton from './ShareButton.jsx';
 import { getCategoryImagesMap } from '@/config/beatCategories.js';
 
 const EnhancedAudioCard = ({ 
@@ -30,7 +31,7 @@ const EnhancedAudioCard = ({
   };
 
   return (
-    <Card className="bg-card border-border overflow-hidden flex flex-col h-full hover:shadow-xl hover:shadow-primary/5 hover:border-primary/30 transition-all duration-300 group">
+    <Card className="premium-card glass-panel overflow-hidden flex flex-col h-full group">
       <div className="relative aspect-square w-full overflow-hidden bg-muted">
         <img 
           src={finalCoverUrl} 
@@ -51,9 +52,21 @@ const EnhancedAudioCard = ({
         </div>
       </div>
 
-      <CardContent className="p-4 flex-1 flex flex-col bg-card">
+      <CardContent className="p-4 flex-1 flex flex-col bg-card/30">
         {description && <p className="text-sm text-muted-foreground mb-4 line-clamp-2 px-2">{description}</p>}
         {extraInfo && <div className="mb-4 px-2">{extraInfo}</div>}
+
+        <div className="mb-3 flex items-center justify-end">
+          <ShareButton
+            title={title}
+            category={genre || 'Production'}
+            url={typeof window !== 'undefined' ? window.location.href : ''}
+            text={`Check out \"${title}\" by ${artist || 'Giver Recording Studio'} on Giver Recording Studio.`}
+            variant="outline"
+            size="icon"
+            className="h-9 w-9 border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
+          />
+        </div>
 
         <div className="mt-auto">
           <EnhancedAudioPlayer 

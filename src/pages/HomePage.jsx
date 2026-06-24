@@ -41,10 +41,12 @@ const HomePage = () => {
 
         <HeroSection />
 
-        <section className="py-24 bg-secondary/50 relative overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,hsl(var(--primary)/0.05),transparent_70%)] pointer-events-none"></div>
+        <div className="section-separator" />
+
+        <section className="section-shell py-20 md:py-24 bg-secondary/30 relative overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,hsl(var(--primary)/0.12),transparent_70%)] pointer-events-none"></div>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
               {highlights.map((highlight, index) => (
                 <motion.div 
                   key={highlight.title} 
@@ -53,15 +55,15 @@ const HomePage = () => {
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                 >
-                  <Card className="premium-card h-full group">
-                    <CardContent className="p-8 text-center">
-                      <div className="w-16 h-16 mx-auto bg-primary/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <Card className="premium-card h-full group glass-panel">
+                    <CardContent className="p-7 md:p-8 text-center">
+                      <div className="w-16 h-16 mx-auto bg-primary/15 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                         <highlight.icon className="w-8 h-8 text-primary" />
                       </div>
-                      <h3 className="text-xl font-bold text-card-foreground mb-3">
+                      <h3 className="text-xl font-bold text-card-foreground mb-3 tracking-tight">
                         {highlight.title}
                       </h3>
-                      <p className="text-card-foreground/70 font-light">
+                      <p className="text-card-foreground/70 font-light leading-relaxed">
                         {highlight.description}
                       </p>
                     </CardContent>
@@ -73,6 +75,8 @@ const HomePage = () => {
         </section>
 
         <FeaturedBeatsSection />
+
+  <div className="section-separator" />
 
         <FreeToolsSection />
 

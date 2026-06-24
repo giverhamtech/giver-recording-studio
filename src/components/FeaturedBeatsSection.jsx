@@ -88,9 +88,9 @@ const FeaturedBeatsSection = () => {
   }, []);
 
   return (
-    <section className="py-20 md:py-28 bg-background border-t border-border">
+    <section className="py-16 md:py-24 bg-background border-t border-border/70 section-shell">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12 md:mb-16">
+        <div className="text-center mb-10 md:mb-14">
           <motion.div 
             initial={{ opacity: 0, y: 20 }} 
             whileInView={{ opacity: 1, y: 0 }} 
@@ -101,21 +101,21 @@ const FeaturedBeatsSection = () => {
               <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
               Showcase
             </div>
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-foreground mb-4 tracking-tight" style={{ letterSpacing: '-0.02em' }}>
+            <h2 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-foreground mb-4 tracking-tight" style={{ letterSpacing: '-0.02em' }}>
               FEATURED <span className="text-primary">TRACKS</span>
             </h2>
-            <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+            <p className="text-sm md:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
               Explore our handpicked, premium selections across multiple genres. High-quality instrumentals ready for your vocals.
             </p>
           </motion.div>
         </div>
 
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8 mb-16">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm flex flex-col h-[400px]">
-                <Skeleton className="w-full h-[180px] rounded-none" />
-                <div className="p-5 flex-1 flex flex-col gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6 gap-4 md:gap-5 mb-12 md:mb-14">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm flex flex-col h-[320px]">
+                <Skeleton className="w-full h-[160px] rounded-none" />
+                <div className="p-4 flex-1 flex flex-col gap-3">
                   <Skeleton className="h-6 w-3/4" />
                   <Skeleton className="h-4 w-1/2" />
                   <Skeleton className="h-10 w-full mt-auto" />
@@ -124,20 +124,20 @@ const FeaturedBeatsSection = () => {
             ))}
           </div>
         ) : featuredSongs.length === 0 ? (
-          <div className="text-center py-24 bg-card border border-dashed border-border rounded-2xl mb-16">
+          <div className="text-center py-24 bg-card border border-dashed border-border rounded-2xl mb-14">
             <Music className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
             <h3 className="text-xl font-bold text-foreground mb-2">No Featured Tracks Currently</h3>
             <p className="text-muted-foreground">Check out the full catalog to find what you need.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8 mb-16">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6 gap-4 md:gap-5 mb-12 md:mb-14">
             {featuredSongs.map((song, index) => (
               <motion.div 
                 key={song.id} 
                 initial={{ opacity: 0, y: 20 }} 
                 whileInView={{ opacity: 1, y: 0 }} 
                 viewport={{ once: true }} 
-                transition={{ duration: 0.5, delay: index * 0.1 }}
+                transition={{ duration: 0.45, delay: (index % 6) * 0.05 }}
                 className="h-full"
               >
                 <FeaturedBeatCard beat={song} playlist={featuredSongs} />
