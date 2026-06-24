@@ -4,6 +4,12 @@ import pb from '@/lib/firebaseClient.js';
 import useLastCategory from './useLastCategory.js';
 import { useDuplicateDetection } from './useDuplicateDetection.js';
 
+const SUPPORTED_AUDIO_EXT = /\.(mp3|wav|m4a|aac|flac|ogg)$/i;
+const isSupportedAudioFile = (file) => {
+  if (!file) return false;
+  return file.type.startsWith('audio/') || SUPPORTED_AUDIO_EXT.test(file.name || '');
+};
+
 const getAudioDuration = (file) => {
   return new Promise((resolve) => {
     const url = URL.createObjectURL(file);
@@ -32,7 +38,7 @@ const useBulkUpload = (collectionName = 'beats') => {
 
   const addFiles = useCallback(async (newFiles) => {
     const validFiles = Array.from(newFiles).filter(file => 
-      file.type === 'audio/mpeg' || file.name.toLowerCase().endsWith('.mp3')
+      isSupportedAudioFile(file)
     );
 
     const fileObjects = await Promise.all(validFiles.map(async (file) => {

@@ -4,6 +4,12 @@ import { UploadCloud, FileText, Copy, CheckCircle2, Download } from 'lucide-reac
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
+const SUPPORTED_AUDIO_EXT = /\.(mp3|wav|m4a|aac|flac|ogg)$/i;
+const isSupportedAudioFile = (file) => {
+  if (!file) return false;
+  return file.type.startsWith('audio/') || SUPPORTED_AUDIO_EXT.test(file.name || '');
+};
+
 const AudioToLyrics = () => {
   const [file, setFile] = useState(null);
   const [status, setStatus] = useState('idle');
@@ -25,7 +31,7 @@ We're making history, making our way`;
 
   const handleFileChange = (e) => {
     const selected = e.target.files[0];
-    if (selected && selected.type.startsWith('audio/')) {
+    if (selected && isSupportedAudioFile(selected)) {
       setFile(selected);
       processAudio();
     }
@@ -66,7 +72,7 @@ We're making history, making our way`;
 
   return (
     <div className="space-y-6">
-      <input type="file" accept="audio/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
+      <input id="audio-to-lyrics-input" type="file" accept="audio/*" className="sr-only" ref={fileInputRef} onChange={handleFileChange} />
       
       {status === 'idle' && (
         <div 

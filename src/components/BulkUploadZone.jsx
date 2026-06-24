@@ -4,6 +4,12 @@ import { UploadCloud, FileAudio, X, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
+const SUPPORTED_AUDIO_EXT = /\.(mp3|wav|m4a|aac|flac|ogg)$/i;
+const isSupportedAudioFile = (file) => {
+  if (!file) return false;
+  return file.type.startsWith('audio/') || SUPPORTED_AUDIO_EXT.test(file.name || '');
+};
+
 const BulkUploadZone = ({ files, onAddFiles, onRemoveFile, onClearAll, disabled }) => {
   const [isDragActive, setIsDragActive] = useState(false);
 
@@ -30,11 +36,11 @@ const BulkUploadZone = ({ files, onAddFiles, onRemoveFile, onClearAll, disabled 
     const maxSizeBytes = 20 * 1024 * 1024; // 20MB
 
     Array.from(fileList).forEach(file => {
-      const isMp3 = file.type === 'audio/mpeg' || file.name.toLowerCase().endsWith('.mp3');
+      const isAudio = isSupportedAudioFile(file);
       const isWithinSize = file.size <= maxSizeBytes;
 
-      if (!isMp3) {
-        toast.error(`"${file.name}" skipped: Only MP3 files are allowed.`);
+      if (!isAudio) {
+        toast.error(`"${file.name}" skipped: Unsupported audio format.`);
       } else if (!isWithinSize) {
         toast.error(`"${file.name}" skipped: File size exceeds 20MB limit.`);
       } else {
@@ -99,8 +105,8 @@ const BulkUploadZone = ({ files, onAddFiles, onRemoveFile, onClearAll, disabled 
           id="bulk-file-input"
           type="file"
           multiple
-          accept=".mp3,audio/mpeg"
-          className="hidden"
+          accept="audio/*"
+          className="sr-only"
           onChange={handleFileInput}
           disabled={disabled}
         />
@@ -108,10 +114,10 @@ const BulkUploadZone = ({ files, onAddFiles, onRemoveFile, onClearAll, disabled 
           <UploadCloud className={`w-10 h-10 ${isDragActive ? 'text-primary' : 'text-muted-foreground'}`} />
         </div>
         <h3 className="text-xl font-semibold text-foreground mb-2">
-          {isDragActive ? 'Drop MP3 files here' : 'Drag files here'}
+          {isDragActive ? 'Drop audio files here' : 'Drag files here'}
         </h3>
         <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">
-          Supports MP3 up to 20MB per file. You can upload multiple files at once.
+          Supports MP3, WAV, M4A, AAC, FLAC and OGG up to 20MB per file.
         </p>
         <Button variant="outline" className="border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground" disabled={disabled}>
           Click to select files

@@ -3,6 +3,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { UploadCloud, Music, FileAudio, RefreshCw, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+const SUPPORTED_AUDIO_EXT = /\.(mp3|wav|m4a|aac|flac|ogg)$/i;
+const isSupportedAudioFile = (file) => {
+  if (!file) return false;
+  return file.type.startsWith('audio/') || SUPPORTED_AUDIO_EXT.test(file.name || '');
+};
+
 const BPMKeyDetector = () => {
   const [file, setFile] = useState(null);
   const [status, setStatus] = useState('idle'); // idle, processing, complete
@@ -20,7 +26,7 @@ const BPMKeyDetector = () => {
 
   const handleFileChange = (e) => {
     const selected = e.target.files[0];
-    if (selected && selected.type.startsWith('audio/')) {
+    if (selected && isSupportedAudioFile(selected)) {
       const preview = URL.createObjectURL(selected);
       setFile({ file: selected, name: selected.name, size: (selected.size / 1024 / 1024).toFixed(2), preview });
       processAudio(selected);
@@ -89,9 +95,10 @@ const BPMKeyDetector = () => {
   return (
     <div className="space-y-6">
       <input 
+        id="bpm-key-audio-input"
         type="file" 
         accept="audio/*" 
-        className="hidden" 
+        className="sr-only" 
         ref={fileInputRef} 
         onChange={handleFileChange}
       />

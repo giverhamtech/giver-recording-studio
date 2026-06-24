@@ -3,6 +3,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { UploadCloud, FileAudio as AudioWaveform, Play, Pause, RefreshCw, FileAudio } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+const SUPPORTED_AUDIO_EXT = /\.(mp3|wav|m4a|aac|flac|ogg)$/i;
+const isSupportedAudioFile = (file) => {
+  if (!file) return false;
+  return file.type.startsWith('audio/') || SUPPORTED_AUDIO_EXT.test(file.name || '');
+};
+
 const PRESETS = [
   { id: 'normal', name: 'Original', pitch: 1 },
   { id: 'pitchUp', name: 'Pitch Up', pitch: 1.5 },
@@ -28,7 +34,7 @@ const VoiceConverter = () => {
 
   const handleFileChange = (e) => {
     const selected = e.target.files[0];
-    if (selected && selected.type.startsWith('audio/')) {
+    if (selected && isSupportedAudioFile(selected)) {
       const preview = URL.createObjectURL(selected);
       setFile({ file: selected, name: selected.name, preview });
       if (audioRef.current) {
@@ -76,10 +82,10 @@ const VoiceConverter = () => {
       <audio 
         ref={audioRef} 
         onEnded={() => setIsPlaying(false)}
-        className="hidden" 
+        className="sr-only" 
       />
       
-      <input type="file" accept="audio/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
+      <input id="voice-converter-audio-input" type="file" accept="audio/*" className="sr-only" ref={fileInputRef} onChange={handleFileChange} />
       
       {!file ? (
         <div 

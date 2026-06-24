@@ -18,6 +18,12 @@ import pb from '@/lib/firebaseClient.js';
 import { toast } from 'sonner';
 import { CATEGORIES, CATEGORY_IMAGES } from '@/config/beatCategories.js';
 
+const SUPPORTED_AUDIO_EXT = /\.(mp3|wav|m4a|aac|flac|ogg)$/i;
+const isSupportedAudioFile = (file) => {
+  if (!file) return false;
+  return file.type.startsWith('audio/') || SUPPORTED_AUDIO_EXT.test(file.name || '');
+};
+
 const ArtistSubmissionPage = () => {
   const { lastCategory, setLastCategory } = useLastCategory();
   
@@ -95,6 +101,12 @@ const ArtistSubmissionPage = () => {
   const handleAudioChange = (e) => {
     const selected = e.target.files[0];
     if (selected) {
+      if (!isSupportedAudioFile(selected)) {
+        toast.error('Unsupported audio format. Use MP3, WAV, M4A, AAC, FLAC or OGG.');
+        e.target.value = null;
+        setAudioFile(null);
+        return;
+      }
       if (selected.size > 20 * 1024 * 1024) {
         toast.error('Audio file size must be under 20MB');
         e.target.value = null;
@@ -122,7 +134,7 @@ const ArtistSubmissionPage = () => {
     e.preventDefault();
     
     if (!formData.artistName || !formData.songTitle || !formData.email || !audioFile) {
-      toast.error('Please fill in all required fields and upload an MP3 file.');
+      toast.error('Please fill in all required fields and upload an audio file.');
       return;
     }
 
@@ -306,15 +318,15 @@ const ArtistSubmissionPage = () => {
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                          <Label htmlFor="audioFile">Upload Audio (MP3) *</Label>
+                          <Label htmlFor="audioFile">Upload Audio *</Label>
                           <div className="border-2 border-dashed border-border rounded-xl p-4 text-center hover:bg-muted/30 transition-colors bg-background h-32 flex items-center justify-center">
                             <input 
                               type="file" 
                               id="audioFile" 
                               name="audioFile" 
-                              accept=".mp3,audio/mpeg" 
+                              accept="audio/*" 
                               onChange={handleAudioChange}
-                              className="hidden"
+                              className="sr-only"
                               required={!audioFile}
                             />
                             <Label htmlFor="audioFile" className="cursor-pointer flex flex-col items-center gap-2 w-full">

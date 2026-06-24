@@ -6,6 +6,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 
 const FORMATS = ['MP3', 'WAV', 'FLAC', 'AAC', 'M4A'];
+const SUPPORTED_AUDIO_EXT = /\.(mp3|wav|m4a|aac|flac|ogg)$/i;
+const isSupportedAudioFile = (file) => {
+  if (!file) return false;
+  return file.type.startsWith('audio/') || SUPPORTED_AUDIO_EXT.test(file.name || '');
+};
 
 const AudioConverter = () => {
   const [file, setFile] = useState(null);
@@ -21,7 +26,7 @@ const AudioConverter = () => {
 
   const handleFileChange = (e) => {
     const selected = e.target.files[0];
-    if (selected && selected.type.startsWith('audio/')) {
+    if (selected && isSupportedAudioFile(selected)) {
       const preview = URL.createObjectURL(selected);
       setFile({ file: selected, name: selected.name, preview });
     }
@@ -54,7 +59,7 @@ const AudioConverter = () => {
 
   return (
     <div className="space-y-6">
-      <input type="file" accept="audio/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
+      <input id="audio-converter-input" type="file" accept="audio/*" className="sr-only" ref={fileInputRef} onChange={handleFileChange} />
       
       {!file ? (
         <div 

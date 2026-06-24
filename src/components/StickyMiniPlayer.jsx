@@ -146,9 +146,15 @@ const StickyMiniPlayer = () => {
 
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-[96px] md:h-[106px] flex flex-col md:flex-row items-center justify-between gap-2 md:gap-4 mt-2 md:mt-0 pb-3 md:pb-0 relative">
             
-            <div className="absolute top-[-25px] right-2 flex items-center gap-1 md:hidden">
-                <Button variant="ghost" size="icon" onClick={closePlayer} className="h-8 w-8 text-muted-foreground hover:text-destructive">
-                  <X className="w-5 h-5" />
+            <div className="absolute top-2 right-4 flex items-center gap-2 md:hidden z-30">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={closePlayer}
+                  className="h-11 w-11 rounded-full bg-background/70 backdrop-blur border border-border text-muted-foreground hover:text-destructive hover:bg-background/90 active:scale-95"
+                  aria-label="Close player"
+                >
+                  <X className="w-6 h-6" />
                 </Button>
             </div>
 
@@ -161,7 +167,7 @@ const StickyMiniPlayer = () => {
                 />
                 <span className={`absolute inset-0 pointer-events-none ${isPlaying ? 'bg-primary/10' : ''}`} />
               </div>
-              <div className="min-w-0 flex-1 pr-12 md:pr-0">
+              <div className="min-w-0 flex-1 pr-16 md:pr-0">
                 <h4 className="text-base md:text-lg font-bold text-foreground truncate">{currentTrack?.title}</h4>
                 <p className="text-xs md:text-sm text-muted-foreground truncate">{currentTrack?.artist || 'Giver Recording Studio'}</p>
               </div>

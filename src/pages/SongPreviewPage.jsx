@@ -174,7 +174,7 @@ const SongPreviewPage = () => {
     <>
       <MetaHead 
         title={`${song.title} | Giver Recording Studio`}
-        description={song.description || `${song.title} by Giver Recording Studio. ${durationLabel ? `Duration ${durationLabel}. ` : ''}Professional ${categoryName} music crafted in Lagos, Nigeria.`}
+        description={song.description || `Download ${song.title}, a premium ${categoryName} track by Giver Recording Studio.`}
         image={coverImage}
         url={currentUrl}
         type="music.song"
