@@ -52,9 +52,12 @@ const MessagesManager = () => {
         .select('*')
         .maybeSingle();
       if (error) throw error;
+      console.log('Update response:', data);
       setMessages((prev) => prev.map((msg) => (msg.id === id ? (data || { ...msg, status }) : msg)));
       toast.success(`Message marked as ${status}`);
+      await fetchMessages();
     } catch (error) {
+      console.log('Error:', error);
       console.error('Message status error:', error);
       toast.error('Failed to update message status');
     } finally {
@@ -66,11 +69,13 @@ const MessagesManager = () => {
     if (!window.confirm('Delete this message permanently?')) return;
     try {
       setIsUpdating(true);
-      const { error } = await supabase.from('contact_messages').delete().eq('id', id);
+      const { data: deleteData, error } = await supabase.from('contact_messages').delete().eq('id', id).select('*').maybeSingle();
       if (error) throw error;
-      setMessages((prev) => prev.filter((msg) => msg.id !== id));
+      console.log('Delete response:', deleteData);
       toast.success('Message deleted');
+      await fetchMessages();
     } catch (error) {
+      console.log('Error:', error);
       console.error('Message delete error:', error);
       toast.error('Failed to delete message');
     } finally {

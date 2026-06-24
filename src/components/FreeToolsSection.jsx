@@ -13,43 +13,43 @@ export const TOOLS_DATA = [
     icon: Activity,
     title: 'BPM & Key Detector',
     description: 'Instantly find the tempo and musical key of any audio file or beat.',
-    isFeatured: true
+    isHighlighted: true
   },
   {
     id: 'vocal-remover',
     icon: MicOff,
     title: 'AI Vocal Remover',
     description: 'Separate vocals from instrumentals with high precision for remixes and karaoke.',
-    isFeatured: true
+    isHighlighted: true
   },
   {
     id: 'voice-converter',
     icon: AudioWaveform,
     title: 'Voice Converter',
     description: 'Transform vocals with pitch shifts and creative studio effects in real-time.',
-    isFeatured: false
+    isHighlighted: false
   },
   {
     id: 'audio-to-lyrics',
     icon: FileText,
     title: 'Audio to Lyrics',
     description: 'Automatically transcribe vocals into text lyrics you can copy or download.',
-    isFeatured: false
+    isHighlighted: false
   },
   {
     id: 'audio-converter',
     icon: Settings2,
     title: 'Format Converter',
     description: 'Quickly convert audio files between MP3, WAV, FLAC, AAC, and M4A.',
-    isFeatured: false
+    isHighlighted: false
   }
 ];
 
 const FreeToolsSection = () => {
   const [activeTool, setActiveTool] = useState(null);
 
-  const featuredTools = TOOLS_DATA.filter(t => t.isFeatured);
-  const otherTools = TOOLS_DATA.filter(t => !t.isFeatured);
+  const priorityTools = TOOLS_DATA.filter(t => t.isHighlighted);
+  const otherTools = TOOLS_DATA.filter(t => !t.isHighlighted);
 
   return (
     <>
@@ -97,9 +97,9 @@ const FreeToolsSection = () => {
             </motion.div>
           </div>
 
-          {/* Featured Tools Grid */}
+          {/* Spotlight Tools Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            {featuredTools.map((tool, index) => (
+            {priorityTools.map((tool, index) => (
               <motion.div
                 key={tool.id}
                 initial={{ opacity: 0, y: 20 }}

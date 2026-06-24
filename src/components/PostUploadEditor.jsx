@@ -14,7 +14,7 @@ import { useDuplicateDetection } from '@/hooks/useDuplicateDetection.js';
 
 const PostUploadEditor = ({ records, failedUploads, skippedFiles, collectionName, onComplete }) => {
   const [editableRecords, setEditableRecords] = useState(
-    records.map(r => ({ ...r, isFeatured: false }))
+    records.map(r => ({ ...r, is_featured: Boolean(r.is_featured) }))
   );
   const [isSaving, setIsSaving] = useState(false);
   const { checkForDuplicate } = useDuplicateDetection();
@@ -44,7 +44,7 @@ const PostUploadEditor = ({ records, failedUploads, skippedFiles, collectionName
           title: record.title,
           description: record.description || '',
           category: record.category || record.genre, // handle both beats and productions
-          ...(collectionName === 'beats' && { isFeatured: record.isFeatured })
+          ...(collectionName === 'beats' && { is_featured: record.is_featured })
         };
         await pb.collection(collectionName).update(record.id, data, { $autoCancel: false });
       }
@@ -159,8 +159,8 @@ const PostUploadEditor = ({ records, failedUploads, skippedFiles, collectionName
 
                 {collectionName === 'beats' && (
                   <FeaturedToggle 
-                    isFeatured={record.isFeatured} 
-                    onChange={(val) => handleChange(record.id, 'isFeatured', val)} 
+                    enabled={record.is_featured} 
+                    onChange={(val) => handleChange(record.id, 'is_featured', val)} 
                   />
                 )}
 

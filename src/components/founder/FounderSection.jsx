@@ -32,16 +32,23 @@ const FounderSection = () => {
     );
   }
 
-  // Fallback data if no profile exists
-  const displayProfile = profile || {
-    founderName: 'ADELAJA M HASSAN',
-    professions: 'Music Producer, Crypto Trader, Metro Journalist',
-    experience: '8 Years of Experience in Mixing and Mastering',
-    biography: 'I am Adelaja M Hassan, a passionate music producer and mixing engineer with an ear for detail. My journey started nearly a decade ago, navigating through the evolving landscapes of both the music industry and digital finance.',
-    instagramUrl: siteSettings?.instagram_url || 'https://instagram.com/giverham',
-    tiktokUrl: siteSettings?.tiktok_url || 'https://tiktok.com/@giverham',
-    twitterUrl: siteSettings?.twitter_url || 'https://x.com/giverham'
-  };
+  if (!profile) {
+    return (
+      <section className="py-24 bg-[#0A0A0A] border-b border-white/5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-8 text-center">
+            <h2 className="text-2xl font-bold text-white mb-2">Founder Profile Not Configured</h2>
+            <p className="text-white/70">
+              Add founder profile details in admin to show this section on the public website.
+            </p>
+            {siteSettings?.site_name ? (
+              <p className="text-white/40 text-sm mt-3">{siteSettings.site_name}</p>
+            ) : null}
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="py-24 bg-[#0A0A0A] border-b border-white/5 overflow-hidden">
@@ -55,7 +62,7 @@ const FounderSection = () => {
           >
             <FounderImage 
               imageUrl={getImageUrl()} 
-              altText={displayProfile.founderName} 
+              altText={profile.founderName} 
             />
           </motion.div>
 
@@ -65,7 +72,7 @@ const FounderSection = () => {
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.7, ease: "easeOut", delay: 0.2 }}
           >
-            <FounderBio profile={displayProfile} />
+            <FounderBio profile={profile} />
           </motion.div>
         </div>
       </div>

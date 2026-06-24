@@ -147,6 +147,7 @@ const CategoryManager = () => {
           const updateResult = await supabase.from('categories').update(variant).eq('id', editingCategory.id);
           error = updateResult.error;
           if (!error) {
+            console.log('Update response:', updateResult.data);
             if (i > 0) {
               console.info('[CategoryManager] update succeeded using fallback payload variant', { variant, categoryId: editingCategory.id, variantIndex: i });
             }
@@ -161,6 +162,7 @@ const CategoryManager = () => {
           const insertResult = await supabase.from('categories').insert(variant);
           error = insertResult.error;
           if (!error) {
+            console.log('Insert response:', insertResult.data);
             if (i > 0) {
               console.info('[CategoryManager] create succeeded using fallback payload variant', { variant, variantIndex: i });
             }
@@ -208,18 +210,30 @@ const CategoryManager = () => {
   };
 
   const handleDelete = async (id) => {
-    const { count, error: countError } = await supabase
-      .from('songs')
-      .select('id', { count: 'exact', head: true })
-      .eq('category_id', id);
+    const [{ count: categoryIdCount, error: categoryIdError }, { count: categoryLegacyCount, error: categoryLegacyError }] = await Promise.all([
+      supabase
+        .from('songs')
+        .select('id', { count: 'exact', head: true })
+        .eq('category_id', id),
+      supabase
+        .from('songs')
+        .select('id', { count: 'exact', head: true })
+        .eq('category', id)
+    ]);
 
-    if (countError) {
-      logSupabaseError('deleteCategoryPreflight', countError, { categoryId: id });
+    if (categoryIdError) {
+      logSupabaseError('deleteCategoryPreflight', categoryIdError, { categoryId: id, field: 'category_id' });
       toast.error('Unable to check whether songs use this category');
       return;
     }
 
-    if ((count || 0) > 0) {
+    if (categoryLegacyError) {
+      logSupabaseError('deleteCategoryPreflight', categoryLegacyError, { categoryId: id, field: 'category' });
+      toast.error('Unable to check whether songs use this category');
+      return;
+    }
+
+    if ((categoryIdCount || 0) + (categoryLegacyCount || 0) > 0) {
       toast.error('Cannot delete a category that already has songs. Reassign those songs first.');
       return;
     }
@@ -227,17 +241,19 @@ const CategoryManager = () => {
     if (!window.confirm('Are you sure you want to delete this category?')) return;
     
     try {
-      const { error } = await supabase.from('categories').delete().eq('id', id);
+      const { data: deleteData, error } = await supabase.from('categories').delete().eq('id', id).select('*').maybeSingle();
       if (error) {
         logSupabaseError('deleteCategory', error, { categoryId: id });
         throw error;
       }
+      console.log('Delete response:', deleteData);
       toast.success('Category deleted permanently');
-      setCategories(categories.filter(c => c.id !== id));
+      await fetchCategories();
       if (editingCategory?.id === id) {
         cancelEdit();
       }
     } catch (error) {
+      console.log('Error:', error);
       logSupabaseError('deleteCategoryCatch', error, { categoryId: id });
       toast.error(`Failed to delete category: ${error?.message || 'Unknown error'}`);
     }

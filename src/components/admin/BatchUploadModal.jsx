@@ -8,11 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase.js';
 import { toast } from 'sonner';
 import useLastCategory from '@/hooks/useLastCategory.js';
 import { extractMetadata } from '@/lib/audioMetadataExtractor.js';
 import { validateAudioFile, getSupportedFormats } from '@/lib/audioFormatValidator.js';
+import { SPOTLIGHT_SONGS_QUERY_KEY, SONGS_ADMIN_QUERY_KEY } from '@/lib/queryClient.js';
 import { generateSlug } from '@/lib/utils.js';
 
 const slugify = (text) => text.toString().toLowerCase().trim()
@@ -36,13 +38,14 @@ const getCategoryImagePath = (cat) => {
 };
 
 const BatchUploadModal = ({ isOpen, onClose, categories, onUploadComplete }) => {
+  const queryClient = useQueryClient();
   const { lastCategory, setLastCategory } = useLastCategory();
   const [selectedCategory, setSelectedCategory] = useState(lastCategory || 'none');
   const [uploadItems, setUploadItems] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [privacy, setPrivacy] = useState('public');
-  const [featured, setFeatured] = useState(false);
+  const [spotlightEnabled, setSpotlightEnabled] = useState(false);
   const [coverImage, setCoverImage] = useState(null);
   const fileInputRef = useRef(null);
   const coverInputRef = useRef(null);
@@ -199,17 +202,24 @@ const BatchUploadModal = ({ isOpen, onClose, categories, onUploadComplete }) => 
           description: null,
           category_id: selectedCategory === 'none' ? null : selectedCategory,
           privacy,
-          featured: Boolean(featured),
+          is_featured: Boolean(spotlightEnabled),
           slug: generateSlug(item.title?.trim() || item.metadata.title) || slugify(item.title?.trim() || item.metadata.title),
           audio_file: audioPath,
           cover_image: sharedCoverPath
         };
 
-        const { error: insertError } = await supabase.from('songs').insert(payload);
+        const { data: insertData, error: insertError } = await supabase.from('songs').insert(payload).select('*').maybeSingle();
 
         if (insertError) {
           throw new Error(formatSupabaseError('songs insert failed', insertError));
         }
+
+        console.log('Insert response:', insertData);
+
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: SPOTLIGHT_SONGS_QUERY_KEY }),
+          queryClient.invalidateQueries({ queryKey: SONGS_ADMIN_QUERY_KEY })
+        ]);
 
         clearInterval(progressInterval);
         setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: 'success', progress: 100 } : p));
@@ -222,7 +232,9 @@ const BatchUploadModal = ({ isOpen, onClose, categories, onUploadComplete }) => 
     }
 
     setIsUploading(false);
-    if (onUploadComplete) onUploadComplete();
+    if (onUploadComplete) {
+      await onUploadComplete();
+    }
 
     if (failedCount === 0) {
       toast.success(`Batch upload complete: ${successCount} tracks added.`);
@@ -327,12 +339,12 @@ const BatchUploadModal = ({ isOpen, onClose, categories, onUploadComplete }) => 
               <label className="flex items-center gap-2 text-sm font-medium text-foreground">
                 <input
                   type="checkbox"
-                  checked={featured}
-                  onChange={(e) => setFeatured(e.target.checked)}
+                  checked={spotlightEnabled}
+                  onChange={(e) => setSpotlightEnabled(e.target.checked)}
                   disabled={isUploading}
                   className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
                 />
-                Mark all as featured
+                Add all to homepage spotlight
               </label>
             </div>
           </div>

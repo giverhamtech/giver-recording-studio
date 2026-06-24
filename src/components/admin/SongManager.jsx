@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Edit, Music, Loader2, Image as ImageIcon, UploadCloud } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/lib/supabase.js';
 import { getPublicStorageUrl } from '@/lib/storage.js';
+import { SPOTLIGHT_SONGS_QUERY_KEY, SONGS_ADMIN_QUERY_KEY } from '@/lib/queryClient.js';
 import { generateSlug } from '@/lib/utils.js';
 import { toast } from 'sonner';
 import BatchUploadModal from '@/components/admin/BatchUploadModal.jsx';
@@ -38,6 +40,7 @@ const formatSupabaseError = (stage, error) => {
 };
 
 const SongManager = () => {
+  const queryClient = useQueryClient();
   const [songs, setSongs] = useState([]);
   const [categories, setCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -49,7 +52,7 @@ const SongManager = () => {
     description: '',
     category: '',
     privacy: 'public',
-    featured: false
+    is_featured: false
   });
   
   const [audioFile, setAudioFile] = useState(null);
@@ -132,7 +135,7 @@ const SongManager = () => {
         description: formData.description || null,
         category_id: formData.category || null,
         privacy: formData.privacy,
-        featured: Boolean(formData.featured),
+        is_featured: Boolean(formData.is_featured),
         slug: generateSlug(formData.title)
       };
 
@@ -141,8 +144,17 @@ const SongManager = () => {
 
       console.info('songs.insert payload', payload);
 
-      const { error } = await supabase.from('songs').insert(payload);
+      const { data: insertData, error } = await supabase.from('songs').insert(payload).select('*').maybeSingle();
       if (error) throw new Error(formatSupabaseError('songs insert failed', error));
+
+      console.log('Insert response:', insertData);
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: SPOTLIGHT_SONGS_QUERY_KEY }),
+        queryClient.invalidateQueries({ queryKey: SONGS_ADMIN_QUERY_KEY }),
+        queryClient.refetchQueries({ queryKey: SPOTLIGHT_SONGS_QUERY_KEY }),
+        queryClient.refetchQueries({ queryKey: SONGS_ADMIN_QUERY_KEY })
+      ]);
       
       toast.success('Song uploaded and saved to database successfully!');
       
@@ -152,14 +164,15 @@ const SongManager = () => {
         description: '',
         category: categories.length > 0 ? categories[0].id : '',
         privacy: 'public',
-        featured: false
+        is_featured: false
       });
       setAudioFile(null);
       setCoverImage(null);
       
       // Refresh list
-      fetchData();
+      await fetchData();
     } catch (error) {
+      console.log('Error:', error);
       console.error('Upload error:', error);
       toast.error(error?.message || 'Song upload failed');
     } finally {
@@ -171,11 +184,19 @@ const SongManager = () => {
     if (!window.confirm('Are you sure you want to delete this song permanently?')) return;
     
     try {
-      const { error } = await supabase.from('songs').delete().eq('id', id);
+      const { data: deleteData, error } = await supabase.from('songs').delete().eq('id', id).select('*').maybeSingle();
       if (error) throw error;
+      console.log('Delete response:', deleteData);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: SPOTLIGHT_SONGS_QUERY_KEY }),
+        queryClient.invalidateQueries({ queryKey: SONGS_ADMIN_QUERY_KEY }),
+        queryClient.refetchQueries({ queryKey: SPOTLIGHT_SONGS_QUERY_KEY }),
+        queryClient.refetchQueries({ queryKey: SONGS_ADMIN_QUERY_KEY })
+      ]);
       toast.success('Song deleted successfully');
-      setSongs(songs.filter(s => s.id !== id));
+      await fetchData();
     } catch (error) {
+      console.log('Error:', error);
       console.error('Delete error:', error);
       toast.error('Failed to delete song');
     }
@@ -243,13 +264,13 @@ const SongManager = () => {
               <div className="space-y-2 flex items-center gap-2 pt-8">
                 <input 
                   type="checkbox" 
-                  id="featured" 
-                  name="featured" 
-                  checked={formData.featured} 
+                  id="is_featured" 
+                  name="is_featured" 
+                  checked={formData.is_featured} 
                   onChange={handleInputChange}
                   className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
                 />
-                <Label htmlFor="featured" className="cursor-pointer mb-0">Mark as Featured Track</Label>
+                <Label htmlFor="is_featured" className="cursor-pointer mb-0">Show in Homepage Spotlight</Label>
               </div>
 
               <div className="space-y-2 md:col-span-2">
@@ -312,7 +333,7 @@ const SongManager = () => {
                       <Badge variant={song.privacy === 'public' ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0">
                         {song.privacy}
                       </Badge>
-                      {song.featured && <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary text-primary">Featured</Badge>}
+                      {song.is_featured && <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary text-primary">Spotlight</Badge>}
                     </div>
                   </div>
                   <Button variant="ghost" size="icon" onClick={() => handleDelete(song.id)} className="shrink-0 text-muted-foreground hover:text-destructive">

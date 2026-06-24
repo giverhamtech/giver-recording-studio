@@ -11,7 +11,7 @@ import { TOOLS_DATA } from '@/components/FreeToolsSection.jsx';
 const ToolsPage = () => {
   const [activeTool, setActiveTool] = useState(null);
 
-  // Group tools by featured to structure the grid elegantly
+  // Group tools by spotlight priority to structure the grid elegantly
   const topFeatured = TOOLS_DATA.slice(0, 2);
   const bottomRow = TOOLS_DATA.slice(2);
 
@@ -46,7 +46,7 @@ const ToolsPage = () => {
         <section className="py-20 bg-background">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="space-y-6">
-              {/* Featured Tools - 2 Columns */}
+              {/* Spotlight Tools - 2 Columns */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {topFeatured.map((tool, index) => (
                   <motion.div

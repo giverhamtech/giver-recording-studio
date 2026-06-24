@@ -17,18 +17,6 @@ const AudioToLyrics = () => {
   const [copied, setCopied] = useState(false);
   const fileInputRef = useRef(null);
 
-  const mockLyrics = `Yeah, yeah
-We elevate the sound
-From the ground to the sky
-Feel the bass, watch it bounce
-Giver Studio on the rise
-
-(Chorus)
-This is the rhythm of the new wave
-Catch the vibe, let the music play
-Perfect pitch, every single day
-We're making history, making our way`;
-
   const handleFileChange = (e) => {
     const selected = e.target.files[0];
     if (selected && isSupportedAudioFile(selected)) {
@@ -40,9 +28,12 @@ We're making history, making our way`;
   const processAudio = () => {
     setStatus('processing');
     
-    // Simulate transcribing process
     setTimeout(() => {
-      setLyrics(mockLyrics);
+      setLyrics(
+        'Automatic transcription is currently unavailable in this build.\n\n' +
+        'Your upload was received successfully, but no placeholder lyrics are generated.\n' +
+        'Please use your production transcription service and paste the final lyrics here if needed.'
+      );
       setStatus('complete');
     }, 3000);
   };

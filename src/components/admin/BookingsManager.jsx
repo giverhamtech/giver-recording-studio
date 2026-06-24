@@ -52,9 +52,12 @@ const BookingsManager = () => {
         .select('*')
         .maybeSingle();
       if (error) throw error;
+      console.log('Update response:', data);
       setBookings((prev) => prev.map((booking) => (booking.id === id ? (data || { ...booking, status }) : booking)));
       toast.success(`Booking marked as ${status}`);
+      await fetchBookings();
     } catch (error) {
+      console.log('Error:', error);
       console.error('Booking update error:', error);
       toast.error('Failed to update booking status');
     } finally {
@@ -66,11 +69,13 @@ const BookingsManager = () => {
     if (!window.confirm('Delete this booking request permanently?')) return;
     try {
       setIsUpdating(true);
-      const { error } = await supabase.from('bookings').delete().eq('id', id);
+      const { data: deleteData, error } = await supabase.from('bookings').delete().eq('id', id).select('*').maybeSingle();
       if (error) throw error;
-      setBookings((prev) => prev.filter((booking) => booking.id !== id));
+      console.log('Delete response:', deleteData);
       toast.success('Booking deleted');
+      await fetchBookings();
     } catch (error) {
+      console.log('Error:', error);
       console.error('Booking delete error:', error);
       toast.error('Failed to delete booking');
     } finally {

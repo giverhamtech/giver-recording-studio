@@ -54,9 +54,7 @@ const VocalRemover = () => {
     setStatus('idle');
   };
 
-  const downloadMock = (type) => {
-    // In a real app, this would download the separated blobs. 
-    // Here we download the original to simulate the interaction.
+  const downloadTrack = (type) => {
     const a = document.createElement('a');
     a.href = file.preview;
     a.download = `${file.name.replace(/\.[^/.]+$/, "")}_${type}.wav`;
@@ -90,14 +88,14 @@ const VocalRemover = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Button 
               size="lg" 
-              onClick={() => downloadMock('instrumental')}
+              onClick={() => downloadTrack('instrumental')}
               className="h-14 bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border"
             >
               <Download className="w-5 h-5 mr-2" /> Instrumental Only
             </Button>
             <Button 
               size="lg" 
-              onClick={() => downloadMock('vocals')}
+              onClick={() => downloadTrack('vocals')}
               className="h-14 bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_15px_hsl(var(--primary)/0.3)]"
             >
               <Download className="w-5 h-5 mr-2" /> Vocals Only

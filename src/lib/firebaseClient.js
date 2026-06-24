@@ -34,6 +34,7 @@ const normalizeSongRecord = (record) => {
 	return {
 		...record,
 		mp3_file: record.mp3_file || record.audioFile || null,
+		is_featured: Boolean(record.is_featured),
 		created: record.created || record.created_at || null
 	};
 };
@@ -53,14 +54,12 @@ const mapOutgoing = (collectionName, payload) => {
 		if (mapped.coverImage !== undefined) mapped.cover_image = mapped.coverImage;
 		if (mapped.videoUrl !== undefined) mapped.video_url = mapped.videoUrl;
 		if (mapped.displayOrder !== undefined) mapped.display_order = mapped.displayOrder;
-		if (mapped.isFeatured !== undefined) mapped.featured = mapped.isFeatured;
 		if (mapped.privacy !== undefined && mapped.visibility === undefined) mapped.visibility = mapped.privacy;
 
 		delete mapped.audioFile;
 		delete mapped.coverImage;
 		delete mapped.videoUrl;
 		delete mapped.displayOrder;
-		delete mapped.isFeatured;
 		delete mapped.privacy;
 	}
 
@@ -108,7 +107,6 @@ const mapIncoming = (collectionName, record) => {
 			coverImage: record.coverImage ?? record.cover_image ?? null,
 			videoUrl: record.videoUrl ?? record.video_url ?? null,
 			displayOrder: record.displayOrder ?? record.display_order ?? 0,
-			isFeatured: record.isFeatured ?? record.featured ?? false,
 			privacy: record.privacy ?? record.visibility ?? 'public',
 			visibility: record.visibility ?? record.privacy ?? 'public',
 			created: record.created ?? record.created_at ?? null
@@ -140,7 +138,6 @@ const inferBucket = (fieldName, fileName) => {
 	const key = `${fieldName || ''} ${fileName || ''}`.toLowerCase();
 	if (key.includes('audio') || key.includes('mp3') || key.includes('wav') || key.includes('m4a')) return 'song-files';
 	if (key.includes('avatar') || key.includes('founder')) return 'avatars';
-	if (key.includes('featured')) return 'featured-images';
 	return 'cover-images';
 };
 

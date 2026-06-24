@@ -16,7 +16,7 @@ const BeatEditModal = ({ beat, isOpen, onClose, onSave }) => {
     title: '',
     category: '',
     description: '',
-    isFeatured: false
+    is_featured: false
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -26,7 +26,7 @@ const BeatEditModal = ({ beat, isOpen, onClose, onSave }) => {
         title: beat.title || '',
         category: beat.category || '',
         description: beat.description || '',
-        isFeatured: beat.isFeatured || false
+        is_featured: Boolean(beat.is_featured)
       });
     }
   }, [beat, isOpen]);
@@ -100,8 +100,8 @@ const BeatEditModal = ({ beat, isOpen, onClose, onSave }) => {
           </div>
 
           <FeaturedToggle 
-            isFeatured={formData.isFeatured} 
-            onChange={(val) => handleChange('isFeatured', val)} 
+            enabled={formData.is_featured} 
+            onChange={(val) => handleChange('is_featured', val)} 
           />
 
           <DialogFooter>

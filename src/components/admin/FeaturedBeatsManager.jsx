@@ -1,22 +1,23 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Star, CheckCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase.js';
+import { SPOTLIGHT_SONGS_QUERY_KEY, SONGS_ADMIN_QUERY_KEY } from '@/lib/queryClient.js';
 import { toast } from 'sonner';
 
 const getCategoryId = (song) => song?.category ?? song?.category_id ?? null;
 const getCreatedValue = (song) => song?.created_at ?? song?.created ?? null;
 
 const FeaturedBeatsManager = () => {
-  const [songs, setSongs] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [updatingId, setUpdatingId] = useState(null);
 
-  const fetchSongs = async () => {
-    try {
-      setIsLoading(true);
+  const { data: songs = [], isLoading } = useQuery({
+    queryKey: SONGS_ADMIN_QUERY_KEY,
+    queryFn: async () => {
       const [{ data: songsRes, error: songsErr }, { data: categoriesRes, error: categoriesErr }] = await Promise.all([
         supabase
           .from('songs')
@@ -37,39 +38,45 @@ const FeaturedBeatsManager = () => {
       });
 
       const categoriesById = new Map((categoriesRes || []).map((c) => [c.id, c.name]));
-      const normalizedSongs = sortedSongs.map((song) => ({
+      return sortedSongs.map((song) => ({
         ...song,
         categoryName: categoriesById.get(getCategoryId(song)) || 'Uncategorized'
       }));
-      setSongs(normalizedSongs);
-    } catch (error) {
-      console.error('Error fetching songs:', error);
-      toast.error('Failed to load songs');
-    } finally {
-      setIsLoading(false);
     }
-  };
+  });
 
-  useEffect(() => {
-    fetchSongs();
-  }, []);
+  const toggleFeaturedMutation = useMutation({
+    mutationFn: async ({ id, nextStatus }) => {
+      const { data: updatedSong, error } = await supabase
+        .from('songs')
+        .update({ is_featured: nextStatus })
+        .eq('id', id)
+        .select('*')
+        .maybeSingle();
+
+      if (error) throw error;
+      return updatedSong;
+    }
+  });
 
   const toggleFeatured = async (id, currentStatus) => {
     try {
       setUpdatingId(id);
-      const { error } = await supabase
-        .from('songs')
-        .update({ featured: !currentStatus })
-        .eq('id', id);
-      if (error) throw error;
-      
-      toast.success(`Song ${!currentStatus ? 'marked as' : 'removed from'} featured tracks!`);
-      
-      // Update local state to reflect DB change instantly
-      setSongs(songs.map(s => s.id === id ? { ...s, featured: !currentStatus } : s));
+      const nextStatus = !currentStatus;
+      const updatedSong = await toggleFeaturedMutation.mutateAsync({ id, nextStatus });
+
+      console.log('Update response:', updatedSong);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: SPOTLIGHT_SONGS_QUERY_KEY }),
+        queryClient.invalidateQueries({ queryKey: SONGS_ADMIN_QUERY_KEY }),
+        queryClient.refetchQueries({ queryKey: SPOTLIGHT_SONGS_QUERY_KEY }),
+        queryClient.refetchQueries({ queryKey: SONGS_ADMIN_QUERY_KEY })
+      ]);
+      toast.success(`Song ${nextStatus ? 'added to' : 'removed from'} homepage spotlight.`);
     } catch (error) {
+      console.log('Error:', error);
       console.error('Update error:', error);
-      toast.error('Failed to update featured status in database');
+      toast.error('Failed to update spotlight status in database');
     } finally {
       setUpdatingId(null);
     }
@@ -80,10 +87,10 @@ const FeaturedBeatsManager = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Star className="w-5 h-5 text-amber-500" />
-          Manage Featured Tracks
+          Manage Homepage Spotlight
         </CardTitle>
         <CardDescription>
-          Select which tracks appear prominently in the Featured Beats section on the homepage. Changes here persist to the database and update the live website immediately.
+          Select which tracks appear in the homepage spotlight section. Changes here persist to the database and update the live website immediately.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -99,7 +106,7 @@ const FeaturedBeatsManager = () => {
               <div 
                 key={song.id} 
                 className={`flex flex-col p-4 border rounded-xl transition-all ${
-                  song.featured ? 'bg-primary/5 border-primary/50' : 'bg-background/50 border-border hover:border-primary/30'
+                  song.is_featured ? 'bg-primary/5 border-primary/50' : 'bg-background/50 border-border hover:border-primary/30'
                 }`}
               >
                 <div className="flex justify-between items-start mb-4">
@@ -109,21 +116,21 @@ const FeaturedBeatsManager = () => {
                       {song.categoryName} • <span className={song.privacy === 'public' ? 'text-teal-500' : 'text-amber-500'}>{song.privacy}</span>
                     </p>
                   </div>
-                  {song.featured && <CheckCircle className="w-5 h-5 text-primary shrink-0" />}
+                  {song.is_featured && <CheckCircle className="w-5 h-5 text-primary shrink-0" />}
                 </div>
                 
                 <Button 
-                  variant={song.featured ? 'outline' : 'secondary'} 
-                  className={`w-full mt-auto ${song.featured ? 'border-primary/50 text-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive' : 'text-secondary-foreground hover:bg-primary hover:text-primary-foreground'}`}
+                  variant={song.is_featured ? 'outline' : 'secondary'} 
+                  className={`w-full mt-auto ${song.is_featured ? 'border-primary/50 text-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive' : 'text-secondary-foreground hover:bg-primary hover:text-primary-foreground'}`}
                   disabled={updatingId === song.id}
-                  onClick={() => toggleFeatured(song.id, song.featured)}
+                  onClick={() => toggleFeatured(song.id, song.is_featured)}
                 >
                   {updatingId === song.id ? (
                     <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
-                  ) : song.featured ? (
-                    'Remove from Featured'
+                  ) : song.is_featured ? (
+                    'Remove from Spotlight'
                   ) : (
-                    'Set as Featured'
+                    'Set as Spotlight'
                   )}
                 </Button>
               </div>

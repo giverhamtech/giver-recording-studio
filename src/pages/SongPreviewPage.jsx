@@ -215,9 +215,9 @@ const SongPreviewPage = () => {
                     <span className="px-3 py-1 bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-widest rounded shadow-sm">
                       {categoryName}
                     </span>
-                    {song.featured && (
+                    {song.is_featured && (
                       <span className="px-3 py-1 bg-amber-500 text-black text-[10px] font-bold uppercase tracking-widest rounded shadow-sm">
-                        Featured
+                        Spotlight
                       </span>
                     )}
                   </div>

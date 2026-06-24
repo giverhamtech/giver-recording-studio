@@ -133,11 +133,9 @@ export const useFounderProfile = () => {
                   title: 'Founder Profile',
                   status: FOUNDER_SENTINEL_STATUS
                 }
-              : { founderName: 'Giver Recording Studio Founder' };
-
-          if (table !== 'artist_uploads') {
-            payload.founder_name = 'Giver Recording Studio Founder';
-          }
+              : {
+                  founder_name: 'Giver Recording Studio Founder'
+                };
 
           const { data: inserted, error: insertErr } = await supabase
             .from(table)

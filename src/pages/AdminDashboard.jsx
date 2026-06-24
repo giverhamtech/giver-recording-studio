@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -22,6 +23,7 @@ import MessagesManager from '@/components/admin/MessagesManager.jsx';
 import BookingsManager from '@/components/admin/BookingsManager.jsx';
 import useFounderProfile from '@/hooks/useFounderProfile.js';
 import { useSiteSettings } from '@/contexts/SiteSettingsContext.jsx';
+import { SPOTLIGHT_SONGS_QUERY_KEY, SONGS_ADMIN_QUERY_KEY } from '@/lib/queryClient.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { generateSlug } from '@/lib/utils.js';
@@ -49,11 +51,12 @@ const getStatusBadge = (status) => {
 };
 
 const AdminDashboard = () => {
+  const queryClient = useQueryClient();
   const { siteSettings } = useSiteSettings();
   const [stats, setStats] = useState({
     categories: 0,
     songs: 0,
-    featured: 0,
+    spotlight: 0,
     public: 0,
     private: 0,
     unlisted: 0
@@ -71,7 +74,7 @@ const AdminDashboard = () => {
     title: '',
     categoryId: 'none',
     description: '',
-    featured: false,
+    is_featured: false,
     privacy: 'public'
   });
   const [isLoading, setIsLoading] = useState(true);
@@ -106,7 +109,7 @@ const AdminDashboard = () => {
 
       const [categoriesRes, songsRes, submissionsRes] = await Promise.all([
         supabase.from('categories').select('*'),
-        supabase.from('songs').select('id, privacy, featured'),
+        supabase.from('songs').select('id, privacy, is_featured'),
         fetchSubmissions()
       ]);
 
@@ -120,7 +123,7 @@ const AdminDashboard = () => {
       const publicCount = songs.filter(s => s.privacy === 'public').length;
       const privateCount = songs.filter(s => s.privacy === 'private').length;
       const unlistedCount = songs.filter(s => s.privacy === 'unlisted').length;
-      const featuredCount = songs.filter(s => s.featured).length;
+      const featuredCount = songs.filter((s) => s.is_featured).length;
 
       setStats({
         categories: categoriesCount,
@@ -128,7 +131,7 @@ const AdminDashboard = () => {
         public: publicCount,
         private: privateCount,
         unlisted: unlistedCount,
-        featured: featuredCount
+        spotlight: featuredCount
       });
 
       setSubmissions(submissionsRes.data || []);
@@ -183,7 +186,7 @@ const AdminDashboard = () => {
       title: getSubmissionSongTitle(submission),
       categoryId: maybeCategoryId || categoryFromGenre?.id || 'none',
       description: getSubmissionDescription(submission) || '',
-      featured: false,
+      is_featured: false,
       privacy: 'public'
     });
     setApprovalModalOpen(true);
@@ -213,14 +216,22 @@ const AdminDashboard = () => {
         description: approvalForm.description?.trim() || null,
         category_id: approvalForm.categoryId === 'none' ? null : approvalForm.categoryId,
         privacy: approvalForm.privacy,
-        featured: Boolean(approvalForm.featured),
+        is_featured: Boolean(approvalForm.is_featured),
         slug: generateSlug(title),
         audio_file: audioPath,
         cover_image: getSubmissionCover(approvalTarget) || null
       };
 
-      const { error: insertError } = await supabase.from('songs').insert(payload);
+      const { data: insertData, error: insertError } = await supabase.from('songs').insert(payload).select('*').maybeSingle();
       if (insertError) throw insertError;
+      console.log('Insert response:', insertData);
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: SPOTLIGHT_SONGS_QUERY_KEY }),
+        queryClient.invalidateQueries({ queryKey: SONGS_ADMIN_QUERY_KEY }),
+        queryClient.refetchQueries({ queryKey: SPOTLIGHT_SONGS_QUERY_KEY }),
+        queryClient.refetchQueries({ queryKey: SONGS_ADMIN_QUERY_KEY })
+      ]);
 
       const statusUpdated = await updateSubmissionStatus(approvalTarget.id, 'approved');
       if (!statusUpdated) {
@@ -231,7 +242,9 @@ const AdminDashboard = () => {
 
       setApprovalModalOpen(false);
       setApprovalTarget(null);
+      await fetchDashboardData();
     } catch (error) {
+      console.log('Error:', error);
       console.error('Finalize approval error:', error);
       toast.error(error?.message || 'Failed to finalize approval');
     } finally {
@@ -379,8 +392,8 @@ const AdminDashboard = () => {
               <TabsTrigger value="categories" className="flex items-center gap-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
                 <Tags className="w-4 h-4" /> Categories
               </TabsTrigger>
-              <TabsTrigger value="featured" className="flex items-center gap-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-                <Star className="w-4 h-4" /> Featured Area
+              <TabsTrigger value="spotlight" className="flex items-center gap-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
+                <Star className="w-4 h-4" /> Homepage Spotlight
               </TabsTrigger>
               <TabsTrigger value="productions" className="flex items-center gap-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
                 <Disc3 className="w-4 h-4" /> Productions
@@ -427,11 +440,11 @@ const AdminDashboard = () => {
                 </Card>
                 <Card className="bg-card border-border shadow-sm hover:border-primary/30 transition-colors">
                   <CardHeader className="pb-2 flex flex-row items-center justify-between">
-                    <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Featured</CardTitle>
+                    <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Spotlight</CardTitle>
                     <Star className="w-4 h-4 text-amber-500 fill-amber-500/20" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold text-foreground">{isLoading ? '-' : stats.featured}</div>
+                    <div className="text-3xl font-bold text-foreground">{isLoading ? '-' : stats.spotlight}</div>
                   </CardContent>
                 </Card>
                 <Card className="bg-card border-border shadow-sm hover:border-primary/30 transition-colors">
@@ -493,7 +506,7 @@ const AdminDashboard = () => {
               <CategoryManager />
             </TabsContent>
 
-            <TabsContent value="featured" className="focus:outline-none">
+            <TabsContent value="spotlight" className="focus:outline-none">
               <FeaturedBeatsManager />
             </TabsContent>
 
@@ -731,11 +744,11 @@ const AdminDashboard = () => {
                 <label className="flex items-center gap-2 text-sm font-medium text-foreground">
                   <input
                     type="checkbox"
-                    checked={approvalForm.featured}
-                    onChange={(e) => setApprovalForm((prev) => ({ ...prev, featured: e.target.checked }))}
+                    checked={approvalForm.is_featured}
+                    onChange={(e) => setApprovalForm((prev) => ({ ...prev, is_featured: e.target.checked }))}
                     className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
                   />
-                  Mark as Featured
+                  Show in Homepage Spotlight
                 </label>
               </div>
             </div>

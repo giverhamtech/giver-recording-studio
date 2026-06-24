@@ -4,11 +4,11 @@ import { ArrowRight } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
-const ToolCard = ({ icon: Icon, title, description, onClick, isFeatured = false }) => {
+const ToolCard = ({ icon: Icon, title, description, onClick, isHighlighted = false }) => {
   return (
     <Card 
       onClick={onClick}
-      className={`group relative bg-card border-border overflow-hidden cursor-pointer transition-all duration-300 hover:animate-[card-glow_0.3s_forwards] hover:-translate-y-1 h-full flex flex-col ${isFeatured ? 'md:col-span-2' : ''}`}
+      className={`group relative bg-card border-border overflow-hidden cursor-pointer transition-all duration-300 hover:animate-[card-glow_0.3s_forwards] hover:-translate-y-1 h-full flex flex-col ${isHighlighted ? 'md:col-span-2' : ''}`}
     >
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
       

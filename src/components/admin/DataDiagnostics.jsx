@@ -222,11 +222,11 @@ const DataDiagnostics = () => {
             </div>
 
             <div className="space-y-3">
-              <h4 className="font-semibold text-foreground border-b border-border pb-1">4. Share & Featured UI</h4>
+              <h4 className="font-semibold text-foreground border-b border-border pb-1">4. Share & Spotlight UI</h4>
               <ul className="text-sm text-muted-foreground space-y-2 list-disc pl-5">
                 <li>Click Share icon and select 'Copy Link' - open in incognito to verify Route /beat/:slug.</li>
-                <li>In Song Library, toggle 'Featured' on a batch-uploaded track.</li>
-                <li>Navigate to Home page and verify the track displays correctly in Featured section with artwork.</li>
+                <li>In Song Library, toggle spotlight on a batch-uploaded track.</li>
+                <li>Navigate to Home page and verify the track displays correctly in the spotlight section with artwork.</li>
               </ul>
             </div>
 

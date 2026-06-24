@@ -26,7 +26,6 @@ const ProductionManager = () => {
     title: '',
     description: '',
     videoUrl: '',
-    featured: false,
     visibility: 'public',
     displayOrder: 0
   });
@@ -68,7 +67,6 @@ const ProductionManager = () => {
       title: '',
       description: '',
       videoUrl: '',
-      featured: false,
       visibility: 'public',
       displayOrder: 0
     });
@@ -118,7 +116,6 @@ const ProductionManager = () => {
         title: formData.title.trim(),
         description: formData.description?.trim() || null,
         video_url: formData.videoUrl?.trim() || null,
-        featured: Boolean(formData.featured),
         visibility: formData.visibility,
         display_order: Number(formData.displayOrder) || 0,
         audio_file: audioPath || null,
@@ -126,18 +123,21 @@ const ProductionManager = () => {
       };
 
       if (editingProduction) {
-        const { error } = await supabase.from('productions').update(payload).eq('id', editingProduction.id);
+        const { data: updateData, error } = await supabase.from('productions').update(payload).eq('id', editingProduction.id).select('*').maybeSingle();
         if (error) throw error;
+        console.log('Update response:', updateData);
         toast.success('Production updated successfully');
       } else {
-        const { error } = await supabase.from('productions').insert(payload);
+        const { data: insertData, error } = await supabase.from('productions').insert(payload).select('*').maybeSingle();
         if (error) throw error;
+        console.log('Insert response:', insertData);
         toast.success('Production created successfully');
       }
 
       resetForm();
-      fetchProductions();
+      await fetchProductions();
     } catch (error) {
+      console.log('Error:', error);
       console.error('Production save error:', error);
       toast.error(error?.message || 'Failed to save production');
     } finally {
@@ -153,7 +153,6 @@ const ProductionManager = () => {
       title: prod?.title || '',
       description: prod?.description || '',
       videoUrl: prod?.video_url || '',
-      featured: Boolean(prod?.featured),
       visibility: prod?.visibility || 'public',
       displayOrder: getDisplayOrder(prod)
     });
@@ -162,12 +161,14 @@ const ProductionManager = () => {
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this production permanently?')) return;
     try {
-      const { error } = await supabase.from('productions').delete().eq('id', id);
+      const { data: deleteData, error } = await supabase.from('productions').delete().eq('id', id).select('*').maybeSingle();
       if (error) throw error;
+      console.log('Delete response:', deleteData);
       toast.success('Production deleted successfully');
-      setProductions((prev) => prev.filter((prod) => prod.id !== id));
+      await fetchProductions();
       if (editingProduction?.id === id) resetForm();
     } catch (error) {
+      console.log('Error:', error);
       console.error('Production delete error:', error);
       toast.error('Failed to delete production');
     }
@@ -225,18 +226,6 @@ const ProductionManager = () => {
                 <Label htmlFor="coverImage">Cover Image</Label>
                 <Input id="coverImage" type="file" accept="image/*" onChange={(e) => setCoverImage(e.target.files?.[0] || null)} className="bg-background" />
               </div>
-
-              <div className="space-y-2 flex items-center gap-2 pt-8">
-                <input
-                  type="checkbox"
-                  id="featured"
-                  name="featured"
-                  checked={formData.featured}
-                  onChange={handleInputChange}
-                  className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
-                />
-                <Label htmlFor="featured" className="cursor-pointer mb-0">Mark as Featured</Label>
-              </div>
             </div>
 
             <div className="flex flex-wrap gap-3">
@@ -289,7 +278,6 @@ const ProductionManager = () => {
                         <Badge variant={prod.visibility === 'public' ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0">
                           {prod.visibility || 'public'}
                         </Badge>
-                        {prod.featured && <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary text-primary">Featured</Badge>}
                         {prod.video_url && <Badge variant="outline" className="text-[10px] px-1.5 py-0"><Video className="w-3 h-3 mr-1" />Video</Badge>}
                       </div>
                       <p className="text-[10px] text-muted-foreground/70 mt-1">Order: {getDisplayOrder(prod)}</p>

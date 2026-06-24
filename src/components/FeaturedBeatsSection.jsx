@@ -1,12 +1,14 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Music } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/lib/supabase.js';
 import { getPublicStorageUrl } from '@/lib/storage.js';
+import { SPOTLIGHT_SONGS_QUERY_KEY } from '@/lib/queryClient.js';
 import FeaturedBeatCard from './FeaturedBeatCard.jsx';
 
 const getCategoryId = (song) => song?.category ?? song?.category_id ?? null;
@@ -20,37 +22,34 @@ const getIsPublic = (song) => {
 };
 
 const FeaturedBeatsSection = () => {
-  const [featuredSongs, setFeaturedSongs] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: spotlightSongs = [], isLoading } = useQuery({
+    queryKey: SPOTLIGHT_SONGS_QUERY_KEY,
+    queryFn: async () => {
+      const [{ data: songsRes, error: songsErr }, { data: categoriesRes, error: categoriesErr }] = await Promise.all([
+        supabase
+          .from('songs')
+          .select('*')
+          .eq('is_featured', true)
+          .eq('privacy', 'public')
+          .order('created_at', { ascending: false })
+          .limit(50),
+        supabase
+          .from('categories')
+          .select('*')
+      ]);
 
-  useEffect(() => {
-    const fetchFeatured = async () => {
-      try {
-        setIsLoading(true);
-        const [{ data: songsRes, error: songsErr }, { data: categoriesRes, error: categoriesErr }] = await Promise.all([
-          supabase
-            .from('songs')
-            .select('*'),
-          supabase
-            .from('categories')
-            .select('*')
-        ]);
+      if (songsErr) throw songsErr;
+      if (categoriesErr) throw categoriesErr;
 
-        if (songsErr) throw songsErr;
-        if (categoriesErr) throw categoriesErr;
+      const categoriesById = new Map((categoriesRes || []).map((cat) => [cat.id, cat]));
 
-        const categoriesById = new Map((categoriesRes || []).map((cat) => [cat.id, cat]));
-        const songs = (songsRes || [])
-          .filter((song) => song?.featured === true)
-          .filter((song) => getIsPublic(song))
-          .sort((a, b) => new Date(b?.created_at || b?.created || 0).getTime() - new Date(a?.created_at || a?.created || 0).getTime())
-          .slice(0, 50);
-        
-        const formatted = songs.map((song) => {
+      return (songsRes || [])
+        .filter((song) => getIsPublic(song))
+        .map((song) => {
           let coverUrl = 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800&q=80';
           const categoryObj = categoriesById.get(getCategoryId(song));
           const coverPath = getCoverPath(song);
-          
+
           if (coverPath) {
             coverUrl = getPublicStorageUrl({ bucket: 'cover-images', path: coverPath }) || coverUrl;
           } else {
@@ -76,16 +75,8 @@ const FeaturedBeatsSection = () => {
             audioFile: audioPath
           };
         });
-
-        setFeaturedSongs(formatted);
-      } catch (error) {
-        console.error('Error fetching featured tracks:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchFeatured();
-  }, []);
+    }
+  });
 
   return (
     <section className="py-16 md:py-24 bg-background border-t border-border/70 section-shell">
@@ -102,7 +93,7 @@ const FeaturedBeatsSection = () => {
               Showcase
             </div>
             <h2 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-foreground mb-4 tracking-tight" style={{ letterSpacing: '-0.02em' }}>
-              FEATURED <span className="text-primary">TRACKS</span>
+              SPOTLIGHT <span className="text-primary">TRACKS</span>
             </h2>
             <p className="text-sm md:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
               Explore our handpicked, premium selections across multiple genres. High-quality instrumentals ready for your vocals.
@@ -123,15 +114,15 @@ const FeaturedBeatsSection = () => {
               </div>
             ))}
           </div>
-        ) : featuredSongs.length === 0 ? (
+        ) : spotlightSongs.length === 0 ? (
           <div className="text-center py-24 bg-card border border-dashed border-border rounded-2xl mb-14">
             <Music className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-            <h3 className="text-xl font-bold text-foreground mb-2">No Featured Tracks Currently</h3>
+            <h3 className="text-xl font-bold text-foreground mb-2">No Spotlight Tracks Currently</h3>
             <p className="text-muted-foreground">Check out the full catalog to find what you need.</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6 gap-4 md:gap-5 mb-12 md:mb-14">
-            {featuredSongs.map((song, index) => (
+            {spotlightSongs.map((song, index) => (
               <motion.div 
                 key={song.id} 
                 initial={{ opacity: 0, y: 20 }} 
@@ -140,7 +131,7 @@ const FeaturedBeatsSection = () => {
                 transition={{ duration: 0.45, delay: (index % 6) * 0.05 }}
                 className="h-full"
               >
-                <FeaturedBeatCard beat={song} playlist={featuredSongs} />
+                <FeaturedBeatCard beat={song} playlist={spotlightSongs} />
               </motion.div>
             ))}
           </div>

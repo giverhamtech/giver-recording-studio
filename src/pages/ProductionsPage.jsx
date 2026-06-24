@@ -65,8 +65,8 @@ const ProductionsPage = () => {
   }, []);
 
   const visibleProductions = productions.filter((p) => getVisibility(p) === 'public');
-  const featured = visibleProductions.filter((p) => Boolean(p?.featured ?? p?.isFeatured));
-  const latest = visibleProductions.filter((p) => !Boolean(p?.featured ?? p?.isFeatured));
+  const spotlightProductions = visibleProductions.slice(0, 3);
+  const latest = visibleProductions.slice(3);
 
   const currentPlaylist = visibleProductions.filter((p) => getAudioPath(p)).map((p) => ({
     id: p.id,
@@ -118,14 +118,14 @@ const ProductionsPage = () => {
               </div>
             ) : (
               <div className="space-y-24">
-                {featured.length > 0 && (
+                {spotlightProductions.length > 0 && (
                   <div>
                     <h2 className="text-3xl font-bold text-foreground mb-8 border-b border-border pb-4 flex items-center gap-3">
                       <span className="w-2 h-8 bg-accent rounded-full"></span>
-                      Featured Projects
+                      Spotlight Projects
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                      {featured.map((item, index) => (
+                      {spotlightProductions.map((item, index) => (
                         <motion.div key={item.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: index * 0.1 }}>
                           <EnhancedAudioCard 
                             title={item.title} 
