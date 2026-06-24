@@ -20,12 +20,14 @@ const HeroSection = () => {
           transition={{ duration: 0.8, ease: 'easeOut' }}
           className="glass-panel neon-outline rounded-[30px] px-6 py-12 md:px-12 md:py-16"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/12 border border-primary/25 text-primary mb-8 backdrop-blur-sm mx-auto">
+          <div className="flex justify-center mb-8">
+            <div className="inline-flex w-fit items-center gap-2 px-4 py-2 rounded-full bg-primary/12 border border-primary/25 text-primary backdrop-blur-sm">
             <span className="relative flex h-3 w-3">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
               <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
             </span>
             <span className="text-sm font-semibold tracking-wide uppercase">ON THE BEAT IT’S GIVER</span>
+            </div>
           </div>
 
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-extrabold text-foreground mb-6 leading-tight tracking-tighter text-center">

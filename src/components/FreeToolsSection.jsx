@@ -53,7 +53,7 @@ const FreeToolsSection = () => {
 
   return (
     <>
-      <section className="py-24 bg-background relative overflow-hidden">
+      <section className="py-20 md:py-24 bg-background relative overflow-hidden">
         {/* Background Visuals */}
         <div className="absolute inset-0 opacity-20 pointer-events-none mix-blend-screen">
           <img 
@@ -65,7 +65,7 @@ const FreeToolsSection = () => {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="text-center mb-16">
+          <div className="text-center mb-12 md:mb-16">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -81,15 +81,15 @@ const FreeToolsSection = () => {
                   ></div>
                 ))}
               </div>
-              <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-foreground mb-6 tracking-tight">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-foreground mb-5 md:mb-6 tracking-tight px-2">
                 FREE MUSIC <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">TOOLS</span>
               </h2>
-              <p className="text-lg md:text-xl text-foreground/70 max-w-2xl mx-auto font-light mb-8">
+              <p className="text-base sm:text-lg md:text-xl text-foreground/70 max-w-2xl mx-auto font-light mb-8 px-2 leading-7 sm:leading-8 break-words">
                 Empowering artists and producers with browser-based tools. Process audio securely without leaving the page.
               </p>
               
               <Link to="/tools">
-                <Button size="lg" className="h-14 px-8 text-lg font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border">
+                <Button size="lg" className="h-12 sm:h-14 px-6 sm:px-8 text-base sm:text-lg font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border mx-auto">
                   Explore All Tools
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>

@@ -23,23 +23,74 @@ export const PlaybackProvider = ({ children }) => {
   const audioRef = useRef(null);
   const originalQueue = useRef([]);
 
-  useEffect(() => {
-    audioRef.current = new Audio();
-    audioRef.current.volume = volume;
+  const resetPlaybackState = useCallback(() => {
+    setCurrentTrack(null);
+    setQueueState([]);
+    setCurrentIndex(-1);
+    setIsPlaying(false);
+    setPlaybackStatus('idle');
+    setCurrentTime(0);
+    setDuration(0);
+    setIsPlayerVisible(false);
+    setIsMinimized(false);
+    originalQueue.current = [];
+  }, []);
 
+  const stopAudio = useCallback((clearState = false) => {
     const audio = audioRef.current;
+    if (audio) {
+      audio.pause();
+      audio.removeAttribute('src');
+      audio.load();
+    }
+
+    if (clearState) {
+      resetPlaybackState();
+    } else {
+      setIsPlaying(false);
+      setPlaybackStatus('paused');
+      setCurrentTime(0);
+      setDuration(0);
+    }
+  }, [resetPlaybackState]);
+
+  useEffect(() => {
+    const existingAudio = typeof window !== 'undefined' ? window.__giverStudioAudio : null;
+    if (existingAudio) {
+      existingAudio.pause();
+      existingAudio.removeAttribute('src');
+      existingAudio.load();
+    }
+
+    const audio = new Audio();
+    audio.volume = volume;
+    audioRef.current = audio;
+
+    if (typeof window !== 'undefined') {
+      window.__giverStudioAudio = audio;
+    }
 
     const updateTime = () => setCurrentTime(audio.currentTime);
     const updateDuration = () => setDuration(audio.duration);
     const onPlaying = () => { setIsPlaying(true); setPlaybackStatus('playing'); };
     const onPause = () => { setIsPlaying(false); setPlaybackStatus('paused'); };
     const onWaiting = () => setPlaybackStatus('buffering');
+    const onEmptied = () => {
+      setCurrentTime(0);
+      setDuration(0);
+    };
+    const onPageHide = () => {
+      stopAudio(true);
+    };
 
     audio.addEventListener('timeupdate', updateTime);
     audio.addEventListener('loadedmetadata', updateDuration);
     audio.addEventListener('playing', onPlaying);
     audio.addEventListener('pause', onPause);
     audio.addEventListener('waiting', onWaiting);
+    audio.addEventListener('emptied', onEmptied);
+    window.addEventListener('pagehide', onPageHide);
+    window.addEventListener('beforeunload', onPageHide);
 
     return () => {
       audio.removeEventListener('timeupdate', updateTime);
@@ -47,10 +98,60 @@ export const PlaybackProvider = ({ children }) => {
       audio.removeEventListener('playing', onPlaying);
       audio.removeEventListener('pause', onPause);
       audio.removeEventListener('waiting', onWaiting);
+      audio.removeEventListener('emptied', onEmptied);
+      window.removeEventListener('pagehide', onPageHide);
+      window.removeEventListener('beforeunload', onPageHide);
       audio.pause();
-      audio.src = '';
+      audio.removeAttribute('src');
+      audio.load();
+
+      if (typeof window !== 'undefined' && window.__giverStudioAudio === audio) {
+        delete window.__giverStudioAudio;
+      }
     };
+  }, [stopAudio, volume]);
+
+  const incrementPlayCount = useCallback(async (songId) => {
+    try {
+      // Optional analytics; ignore if table/column or RLS prevents updates.
+      // Update playCount if the column exists; otherwise no-op.
+      if (!songId) return;
+      const { error } = await supabase
+        .from('beats')
+        .update({ playCount: 0 })
+        .eq('id', songId);
+
+      if (error) {
+        // ignore
+      }
+    } catch {
+      // ignore
+    }
   }, []);
+
+  const playTrackFromQueue = useCallback((index) => {
+    if (index < 0 || index >= queue.length) return;
+    const track = queue[index];
+    const audio = audioRef.current;
+    if (!audio || !track?.url) return;
+
+    setCurrentIndex(index);
+    setCurrentTrack(track);
+    setCurrentTime(0);
+    setPlaybackStatus('buffering');
+
+    audio.pause();
+    audio.src = track.url;
+    audio.load();
+    audio.play().catch(e => {
+      console.error("Playback failed:", e);
+      setPlaybackStatus('paused');
+      setIsPlaying(false);
+    });
+
+    incrementPlayCount(track.id);
+    setIsPlayerVisible(true);
+  }, [incrementPlayCount, queue]);
 
   const next = useCallback(() => {
     if (queue.length === 0 || !currentTrack) return;
@@ -71,7 +172,7 @@ export const PlaybackProvider = ({ children }) => {
       }
     }
     playTrackFromQueue(nextIdx);
-  }, [queue, currentIndex, currentTrack, repeatMode]);
+  }, [currentIndex, currentTrack, pause, playTrackFromQueue, queue.length, repeatMode]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -81,43 +182,6 @@ export const PlaybackProvider = ({ children }) => {
     audio.addEventListener('ended', onEnded);
     return () => audio.removeEventListener('ended', onEnded);
   }, [next]);
-
-  const incrementPlayCount = async (songId) => {
-    try {
-      // Optional analytics; ignore if table/column or RLS prevents updates.
-      // Update playCount if the column exists; otherwise no-op.
-      if (!songId) return;
-      const { error } = await supabase
-        .from('beats')
-        .update({ playCount: 0 })
-        .eq('id', songId);
-
-      if (error) {
-        // ignore
-      }
-    } catch {
-      // ignore
-    }
-  };
-
-  const playTrackFromQueue = (index) => {
-    if (index < 0 || index >= queue.length) return;
-    const track = queue[index];
-    setCurrentIndex(index);
-    setCurrentTrack(track);
-    setCurrentTime(0);
-    setPlaybackStatus('buffering');
-    
-    audioRef.current.src = track.url;
-    audioRef.current.play().catch(e => {
-      console.error("Playback failed:", e);
-      setPlaybackStatus('paused');
-      setIsPlaying(false);
-    });
-
-    incrementPlayCount(track.id);
-    setIsPlayerVisible(true);
-  };
 
   const setQueue = (tracks) => {
     setQueueState(tracks);
@@ -148,27 +212,27 @@ export const PlaybackProvider = ({ children }) => {
     }
   };
 
-  const pause = () => {
+  const pause = useCallback(() => {
     audioRef.current?.pause();
-  };
+  }, []);
 
-  const resume = () => {
+  const resume = useCallback(() => {
     audioRef.current?.play().catch(e => console.error(e));
-  };
+  }, []);
 
-  const seek = (time) => {
+  const seek = useCallback((time) => {
     if (audioRef.current) {
       audioRef.current.currentTime = time;
       setCurrentTime(time);
     }
-  };
+  }, []);
 
-  const setVolume = (val) => {
+  const setVolume = useCallback((val) => {
     setVolumeState(val);
     if (audioRef.current) {
       audioRef.current.volume = val;
     }
-  };
+  }, []);
 
   const toggleRepeat = () => {
     const modes = ['off', 'one', 'all'];
@@ -212,8 +276,7 @@ export const PlaybackProvider = ({ children }) => {
 
   const toggleMinimize = () => setIsMinimized(!isMinimized);
   const closePlayer = () => {
-    pause();
-    setIsPlayerVisible(false);
+    stopAudio(true);
   };
 
   const value = {
