@@ -7,9 +7,18 @@ import Footer from '@/components/Footer.jsx';
 import ToolCard from '@/components/ToolCard.jsx';
 import ToolsModal from '@/components/ToolsModal.jsx';
 import { TOOLS_DATA } from '@/components/FreeToolsSection.jsx';
+import { trackEvent } from '@/lib/analytics.js';
 
 const ToolsPage = () => {
   const [activeTool, setActiveTool] = useState(null);
+
+  const openTool = (tool) => {
+    trackEvent('tool_usage', {
+      tool_id: tool?.id,
+      tool_name: tool?.title || tool?.name || 'unknown'
+    });
+    setActiveTool(tool);
+  };
 
   // Group tools by spotlight priority to structure the grid elegantly
   const topFeatured = TOOLS_DATA.slice(0, 2);
@@ -57,7 +66,7 @@ const ToolsPage = () => {
                   >
                     <ToolCard 
                       {...tool} 
-                      onClick={() => setActiveTool(tool)}
+                      onClick={() => openTool(tool)}
                     />
                   </motion.div>
                 ))}
@@ -74,7 +83,7 @@ const ToolsPage = () => {
                   >
                     <ToolCard 
                       {...tool} 
-                      onClick={() => setActiveTool(tool)}
+                      onClick={() => openTool(tool)}
                     />
                   </motion.div>
                 ))}

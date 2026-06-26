@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { Route, Routes, BrowserRouter as Router } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Route, Routes, BrowserRouter as Router, useLocation } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext.jsx';
 import { SiteSettingsProvider } from './contexts/SiteSettingsContext.jsx';
 import { PlaybackProvider } from './contexts/PlaybackContext.jsx';
@@ -25,6 +25,18 @@ import TermsOfServicePage from './pages/TermsOfServicePage.jsx';
 import StickyMiniPlayer from './components/StickyMiniPlayer.jsx';
 import MetaHead from './components/MetaHead.jsx';
 import AppErrorBoundary from '@/components/AppErrorBoundary.jsx';
+import { trackPageView } from '@/lib/analytics.js';
+
+function PageViewTracker() {
+  const location = useLocation();
+
+  useEffect(() => {
+    const path = `${location.pathname}${location.search}${location.hash}`;
+    trackPageView(path);
+  }, [location.pathname, location.search, location.hash]);
+
+  return null;
+}
 
 function App() {
 
@@ -34,6 +46,7 @@ function App() {
         <AppErrorBoundary>
           <PlaybackProvider>
             <Router>
+              <PageViewTracker />
               <MetaHead />
               <ScrollToTop />
               <Routes>

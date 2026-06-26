@@ -17,6 +17,7 @@ import { useDuplicateDetection } from '@/hooks/useDuplicateDetection.js';
 import pb from '@/lib/firebaseClient.js';
 import { toast } from 'sonner';
 import { CATEGORIES, CATEGORY_IMAGES } from '@/config/beatCategories.js';
+import { trackEvent } from '@/lib/analytics.js';
 
 const SUPPORTED_AUDIO_EXT = /\.(mp3|wav|m4a|aac|flac|ogg)$/i;
 const isSupportedAudioFile = (file) => {
@@ -163,6 +164,11 @@ const ArtistSubmissionPage = () => {
       submissionData.append('status', 'pending');
 
       await pb.collection('artistSubmissions').create(submissionData, { $autoCancel: false });
+
+      trackEvent('artist_upload', {
+        genre: formData.genre || 'unspecified',
+        has_cover_art: Boolean(coverFile)
+      });
       
       toast.success('Your song has been successfully submitted! We will contact you soon.');
       

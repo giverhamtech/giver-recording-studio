@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import pb from '@/lib/firebaseClient';
 import { supabase } from '@/lib/supabase.js';
 import { toast } from 'sonner';
+import { trackEvent } from '@/lib/analytics.js';
 
 const BookingForm = ({ onSuccess }) => {
   const [services, setServices] = useState([]);
@@ -80,6 +81,10 @@ const BookingForm = ({ onSuccess }) => {
           throw error;
         }
       }
+
+      trackEvent('booking_request', {
+        service_type: payload.service_type || 'unspecified'
+      });
 
       toast.success('Booking request submitted successfully');
       setFormData({

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase.js';
 import { getPublicStorageUrl } from '@/lib/storage.js';
 import { toast } from 'sonner';
+import { trackEvent } from '@/lib/analytics.js';
 
 const BeatDownloadButton = ({ beat, variant = "default", size = "default", className = "" }) => {
   const [isDownloading, setIsDownloading] = useState(false);
@@ -62,6 +63,11 @@ const BeatDownloadButton = ({ beat, variant = "default", size = "default", class
       document.body.removeChild(a);
       
       incrementDownloadCount();
+      trackEvent('beat_download', {
+        beat_id: beat?.id,
+        beat_title: beat?.title,
+        source: 'beat_download_button'
+      });
       
       toast.success('Download started successfully!');
     } catch (error) {

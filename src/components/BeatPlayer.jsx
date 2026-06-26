@@ -4,6 +4,7 @@ import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX } from 'lucide-rea
 import { usePlayback } from '@/contexts/PlaybackContext.jsx';
 import { Button } from '@/components/ui/button';
 import { getPublicStorageUrl } from '@/lib/storage.js';
+import { trackEvent } from '@/lib/analytics.js';
 
 const formatTime = (seconds) => {
   if (!seconds || isNaN(seconds)) return '0:00';
@@ -56,6 +57,11 @@ const BeatPlayer = ({ beat }) => {
           beat.url ||
           (beat.audioFile ? getPublicStorageUrl({ bucket: 'song-files', path: beat.audioFile }) : null)
       };
+      trackEvent('beat_play', {
+        beat_id: beat.id,
+        beat_title: beat.title,
+        beat_genre: beat.category || beat.genre || 'unknown'
+      });
       play(songData, [songData]); // Single song playlist for this view
     }
   };

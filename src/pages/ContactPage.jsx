@@ -12,6 +12,7 @@ import Footer from '@/components/Footer';
 import { supabase } from '@/lib/supabase.js';
 import { toast } from 'sonner';
 import { useSiteSettings } from '@/contexts/SiteSettingsContext.jsx';
+import { trackEvent } from '@/lib/analytics.js';
 
 const ContactPage = () => {
   const { siteSettings } = useSiteSettings();
@@ -77,6 +78,10 @@ const ContactPage = () => {
 
       const { error } = await supabase.from('contact_messages').insert(payload);
       if (error) throw error;
+
+      trackEvent('contact_submission', {
+        subject: payload.subject || 'none'
+      });
 
       toast.success('Message sent successfully');
       setFormData({ name: '', email: '', subject: '', message: '' });
